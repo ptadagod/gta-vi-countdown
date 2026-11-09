@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { GALLERY, preferredWidth } from '../lib/gallery';
+import { preferredWidth } from '../lib/gallery';
 
 const FADE_MS = 1600;
 
@@ -7,7 +7,7 @@ const FADE_MS = 1600;
  * Full-screen, fixed background that cross-fades between gallery images.
  * Each new image is preloaded before it fades in, so transitions never flash.
  */
-export default function Background({ index, onFirstLoad, celebrate }) {
+export default function Background({ images, index, onFirstLoad, celebrate }) {
   const [width] = useState(preferredWidth);
   const [layers, setLayers] = useState([]);
   const firstLoaded = useRef(false);
@@ -15,7 +15,7 @@ export default function Background({ index, onFirstLoad, celebrate }) {
 
   useEffect(() => {
     let cancelled = false;
-    const url = GALLERY[index].src(width);
+    const url = images[index].src(width);
     const img = new Image();
     img.decoding = 'async';
     const show = (ok) => {
@@ -37,13 +37,13 @@ export default function Background({ index, onFirstLoad, celebrate }) {
     return () => {
       cancelled = true;
     };
-  }, [index, width, onFirstLoad]);
+  }, [images, index, width, onFirstLoad]);
 
   // Quietly preload the next image for a snappy toggle.
   useEffect(() => {
     const next = new Image();
-    next.src = GALLERY[(index + 1) % GALLERY.length].src(width);
-  }, [index, width]);
+    next.src = images[(index + 1) % images.length].src(width);
+  }, [images, index, width]);
 
   return (
     <div className={`bg ${celebrate ? 'bg--celebrate' : ''}`} aria-hidden="true">

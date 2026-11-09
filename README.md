@@ -47,7 +47,7 @@ A yellow badge shows while simulated time is on.
 | What | File |
 | --- | --- |
 | Countdown dates | `src/lib/stages.js` |
-| Background images and logo | `src/lib/gallery.js` |
+| Background images (widescreen `GALLERY`, portrait `MOBILE_GALLERY` for upright phones/tablets) and logo | `src/lib/gallery.js` |
 | Trailer video, start/stop times | `src/components/TrailerOverlay.jsx` |
 | "Pre Load Now Open" duration | `ANNOUNCE_MS` in `src/App.jsx` |
 | Background music (MP3 playlist) | files in `public/music/`, list in `PLAYLIST` in `src/lib/audio.js` |

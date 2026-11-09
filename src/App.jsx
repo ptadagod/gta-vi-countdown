@@ -14,7 +14,8 @@ import { useNow, IS_SIMULATED } from './hooks/useNow';
 import { useFullscreen } from './hooks/useFullscreen';
 import { useStoredState } from './hooks/useStoredState';
 import { getStage } from './lib/stages';
-import { GALLERY } from './lib/gallery';
+import { GALLERY, MOBILE_GALLERY, PORTRAIT_QUERY } from './lib/gallery';
+import { useMediaQuery } from './hooks/useMediaQuery';
 import { AmbientMusic, playCompletionSound, unlockAudio } from './lib/audio';
 
 const AUTO_ROTATE_MS = 15000;
@@ -41,12 +42,18 @@ export default function App() {
   }, []);
 
   // ---------- Backgrounds ----------
+  // Upright phones/tablets get Rockstar's portrait images; everything else the widescreen set.
+  const isPortrait = useMediaQuery(PORTRAIT_QUERY);
+  const images = isPortrait ? MOBILE_GALLERY : GALLERY;
   const [bgIndex, setBgIndex] = useStoredState('gta6.bg', 0);
-  const safeBg = Number.isInteger(bgIndex) && bgIndex >= 0 && bgIndex < GALLERY.length ? bgIndex : 0;
-  const nextBg = useCallback(() => setBgIndex((i) => ((i | 0) + 1) % GALLERY.length), [setBgIndex]);
+  const safeBg = Number.isInteger(bgIndex) && bgIndex >= 0 ? bgIndex % images.length : 0;
+  const nextBg = useCallback(
+    () => setBgIndex((i) => ((i | 0) + 1) % images.length),
+    [setBgIndex, images.length],
+  );
   const prevBg = useCallback(
-    () => setBgIndex((i) => ((i | 0) - 1 + GALLERY.length) % GALLERY.length),
-    [setBgIndex],
+    () => setBgIndex((i) => (((i | 0) % images.length) - 1 + images.length) % images.length),
+    [setBgIndex, images.length],
   );
   // Gentle auto-rotation; any manual change restarts the timer.
   useEffect(() => {
@@ -132,7 +139,7 @@ export default function App() {
 
   return (
     <div className={`app stage-${stage.id} ${loaded ? 'is-loaded' : ''}`}>
-      <Background index={safeBg} onFirstLoad={finishLoading} celebrate={stage.launched} />
+      <Background images={images} index={safeBg} onFirstLoad={finishLoading} celebrate={stage.launched} />
       <Loader done={loaded} />
       {flash && <StageFlash key={flash} label={flash} />}
       {(trailerOpen || revealing) && (
@@ -141,7 +148,7 @@ export default function App() {
 
       <Nav
         now={now}
-        bg={{ index: safeBg, total: GALLERY.length }}
+        bg={{ index: safeBg, total: images.length }}
         onPrevBg={prevBg}
         onNextBg={nextBg}
         musicOn={musicOn}
@@ -163,7 +170,7 @@ export default function App() {
         <div className="hero-foot">
           <LocalClock now={now} />
           <span className="hero-foot__caption">
-            {GALLERY[safeBg].caption} · © Rockstar Games
+            {images[safeBg].caption} · © Rockstar Games
             <br />
             Unofficial fan countdown
           </span>

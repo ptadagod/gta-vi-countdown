@@ -33,11 +33,33 @@ const RAW = [
   ['Vice_City_27.0d2e~w_r93hmh.jpg', 'Vice City'],
 ];
 
-export const GALLERY = RAW.map(([file, caption], i) => ({
-  id: i,
-  caption,
-  src: (width) => `${BASE}${file}?akim=1&imdensity=1&imwidth=${width}`,
-}));
+const toImages = (list) =>
+  list.map(([file, caption], i) => ({
+    id: i,
+    caption,
+    src: (width) => `${BASE}${file}?akim=1&imdensity=1&imwidth=${width}`,
+  }));
+
+/** Widescreen images: desktop, laptop, landscape tablets and phones. */
+export const GALLERY = toImages(RAW);
+
+/**
+ * Portrait images for upright phones and tablets. These are Rockstar's own
+ * mobile crops: the launch gallery's Jason & Lucia mobile image, plus the
+ * portrait images from the main GTA VI page (https://www.rockstargames.com/VI).
+ */
+export const MOBILE_GALLERY = toImages([
+  ['mobile.0mi46.hy2kwfa.jpg', 'Vice City'],
+  ['mobile.0xsc-b1pnezup.jpg', 'Jason & Lucia'],
+  ['Jason_and_Lucia_14_Mobile.17zv0lmevzbgs.jpg', 'Jason & Lucia'],
+  ['musicMobile.16pdg34v6lit..jpg', 'Jason & Lucia · Artwork'],
+  ['screenshotsMobile.01nsldjqbta4u.jpg', 'Jason & Lucia'],
+  ['mediaMobile.0p_yfitphljim.jpg', 'Jason & Lucia'],
+  ['onlyInLeonidaMobile.0mupfnk-x6x~r.jpg', 'Only in Leonida'],
+]);
+
+/** Which screens get the portrait set. */
+export const PORTRAIT_QUERY = '(orientation: portrait) and (max-width: 1100px)';
 
 /** Pick a CDN width appropriate for the current viewport. */
 export function preferredWidth() {
