@@ -201,7 +201,83 @@ body.rich .cash { color: var(--gold); }
 .complete-btn:hover { filter: brightness(1.08); }
 .complete-btn:active { transform: scale(0.985); }
 
+/* Lester advice */
+.lester {
+  border-radius: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--faint);
+  background: var(--glass);
+}
+.lester.go { border-left-color: var(--green); background: rgba(111, 227, 154, 0.07); }
+.lester.wait { border-left-color: var(--gold); background: rgba(255, 209, 102, 0.06); }
+.lester-kicker {
+  margin: 0;
+  font: 600 12px/1 var(--cond);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.lester.go .lester-kicker { color: var(--green); }
+.lester.wait .lester-kicker { color: var(--gold); }
+.lester-title { margin: 6px 0 4px; font-size: 18px; }
+.lester-text { margin: 0; color: var(--dim); font-size: 14px; }
+.lester .next-grid { margin-top: 12px; }
+.lester-btn {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--green);
+  border-radius: 10px;
+  background: none;
+  color: var(--green);
+  font: 800 15px/1 var(--cond);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.lester-btn:hover { background: rgba(111, 227, 154, 0.12); }
+
 /* timeline */
+.chapters { display: grid; gap: 8px; margin-top: 12px; }
+.chapter {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.chapter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+  font: 800 18px/1.1 var(--cond);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.chapter-head::-webkit-details-marker { display: none; }
+.chapter-head::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border: solid var(--faint);
+  border-width: 0 2px 2px 0;
+  transform: rotate(-45deg);
+  transition: transform 0.2s;
+  flex: none;
+}
+.chapter[open] > .chapter-head::before { transform: rotate(45deg); }
+.chapter-name { flex: 1; }
+.chapter-count { color: var(--faint); font-size: 15px; font-variant-numeric: tabular-nums; }
+.chapter-done .chapter-count { color: var(--green); }
+.chapter .timeline { margin: 0; padding: 0 6px 8px; }
+.chapter .timeline::before { left: 27px; }
+
+.kind-heist .item-title,
+.kind-finale .item-title { color: var(--gold); }
+.kind-lester .item-title,
+.kind-stock .item-title { color: var(--green); }
+
 .timeline-head { display: flex; justify-content: space-between; align-items: baseline; }
 .timeline-head h2 { margin: 0; font: 400 26px/1 var(--display); text-transform: uppercase; }
 .count { color: var(--faint); font-size: 13px; }
@@ -219,7 +295,7 @@ body.rich .cash { color: var(--gold); }
 .item { position: relative; }
 .item-row {
   display: grid;
-  grid-template-columns: 24px 26px 1fr auto;
+  grid-template-columns: 24px 1fr auto;
   align-items: center;
   gap: 12px;
   padding: 12px 10px;
@@ -308,11 +384,6 @@ body.rich .cash { color: var(--gold); }
   100% { opacity: 0; }
 }
 
-@media (max-width: 480px) {
-  .item-row { grid-template-columns: 24px 1fr auto; }
-  .item-num { display: none; }
-  .timeline::before { left: 21px; }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .passed.show { animation-duration: 0.01s; animation-delay: 0s; }

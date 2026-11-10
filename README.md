@@ -82,6 +82,6 @@ captures the screen (camera + HUD + mic) and saves the clip to Photos.
 
 ## Road to a Billion (`/billion/`)
 
-A GTA V story-mode checklist: Lester's assassination missions plus which stock to buy before and after each one.
+A GTA V story-mode checklist: every story mission in order, plus when to do (or skip) Lester's assassinations and which stock to buy before and after each one.
 Tick a mission off (or press **Mark mission complete**) and the next one comes up. Progress and your optional real
 bank total are saved in the browser. Steps and stock tips live in the `STEPS` array in `billion/main.js`.

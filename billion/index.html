@@ -19,7 +19,7 @@
       <header class="top">
         <p class="eyebrow">GTA V · Story mode</p>
         <h1>Road to a <span>Billion</span></h1>
-        <p class="lede">Lester's assassination missions plus the in-game stock market. Tick each mission off as you pass it and the next one comes up.</p>
+        <p class="lede">Every story mission from the Prologue to the credits, with Lester's assassinations and the stock market slotted in at the right time. Tick each mission off as you pass it and the next one comes up.</p>
       </header>
 
       <section class="bank" aria-label="Progress to one billion">
@@ -45,23 +45,26 @@
 
       <section class="next" id="next" aria-live="polite"></section>
 
+      <aside class="lester" id="lester" aria-live="polite"></aside>
+
       <section class="timeline-wrap">
         <div class="timeline-head">
           <h2>Timeline</h2>
           <span class="count" id="count"></span>
         </div>
-        <ol class="timeline" id="timeline"></ol>
+        <div class="chapters" id="timeline"></div>
         <button class="reset" id="reset" type="button">Reset progress</button>
       </section>
 
       <footer class="notes">
         <p><strong>Golden rules.</strong> Save before every investment. Pass time by sleeping or switching characters, and sell when the stock is up, never at a loss. Put <em>all</em> of every character's money in, except for what the mission costs.</p>
+        <p>Story order follows the usual path. When the game offers two or three missions at once, play them in any order and tick whatever you've done.</p>
         <p>LCN prices are worked out offline, so they behave the same for everyone; BAWSAQ prices can move differently. Cash figures are rough estimates: your real total depends on your heist crew and when you sell.</p>
       </footer>
     </main>
 
     <div class="passed" id="passed" hidden>
-      <p class="passed-title">Mission passed</p>
+      <p class="passed-title" id="passed-title">Mission passed</p>
       <p class="passed-next" id="passed-next"></p>
     </div>
 
