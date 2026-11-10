@@ -17,6 +17,8 @@
   --line: rgba(255, 255, 255, 0.14);
   --radius: 18px;
   --font-display: 'Anton', 'Impact', 'Haettenschweiler', sans-serif;
+  /* Timer digits: closest free match to Rockstar's (proprietary) GTA Art Deco Condensed */
+  --font-timer: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   --font-cond: 'Oswald', 'Arial Narrow', sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -391,12 +393,13 @@ main, .nav { opacity: 0; transition: opacity 1s ease 0.2s; }
 .unit { display: grid; justify-items: center; gap: 4px; }
 .unit__digits {
   display: flex; justify-content: center;
-  font-family: var(--font-display); font-weight: 400;
-  font-size: clamp(46px, 10.5vw, 150px); line-height: 1;
+  font-family: var(--font-timer); font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(56px, 12.6vw, 180px); line-height: 1;
   /* shadow on the whole row: per-digit text-shadow gets clipped into boxes */
   filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.6));
 }
-.digit { display: inline-block; width: 0.56em; height: 1.08em; overflow: hidden; position: relative; text-align: center; }
+.digit { display: inline-block; width: 0.52em; height: 1.08em; overflow: hidden; position: relative; text-align: center; }
 .digit__value {
   display: block; line-height: 1.08em;
   animation: digitIn 0.55s var(--ease-out) both;
@@ -412,7 +415,7 @@ main, .nav { opacity: 0; transition: opacity 1s ease 0.2s; }
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
 }
 .countdown__sep {
-  font-family: var(--font-display); font-size: clamp(30px, 8vw, 120px);
+  font-family: var(--font-timer); font-weight: 800; font-size: clamp(36px, 9.6vw, 144px);
   line-height: 1; color: rgba(255, 255, 255, 0.4);
   padding-top: clamp(4px, 1.2vw, 18px);
   animation: blink 1s steps(1) infinite;
@@ -593,8 +596,8 @@ main, .nav { opacity: 0; transition: opacity 1s ease 0.2s; }
 @media (max-width: 600px) {
   .nav__logo { height: 38px; }
   .countdown { gap: 2px; width: 100%; }
-  .countdown__sep { font-size: 9vw; padding-top: 1vw; }
-  .unit__digits { font-size: clamp(34px, 15vw, 72px); }
+  .countdown__sep { font-size: 11vw; padding-top: 1vw; }
+  .unit__digits { font-size: clamp(40px, 17vw, 86px); }
   .hero__tz { font-size: 12.5px; gap: 4px 6px; }
   .unit__label { letter-spacing: 0.22em; padding-left: 0.22em; font-size: 10px; }
   .hero-foot { flex-direction: column; align-items: center; text-align: center; gap: 10px; }
