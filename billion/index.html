@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0612" />
+    <meta name="description" content="GTA V story mode: a mission-by-mission checklist to a billion dollars with Lester's assassinations and the stock market." />
+    <title>Road to a Billion</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@600;800&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <main class="page">
+      <header class="top">
+        <p class="eyebrow">GTA V · Story mode</p>
+        <h1>Road to a <span>Billion</span></h1>
+        <p class="lede">Lester's assassination missions plus the in-game stock market. Tick each mission off as you pass it and the next one comes up.</p>
+      </header>
+
+      <section class="bank" aria-label="Progress to one billion">
+        <div class="bank-row">
+          <div>
+            <p class="label" id="bank-label">Estimated combined cash</p>
+            <p class="cash" id="cash">$0</p>
+          </div>
+          <div class="pct" id="pct">0%</div>
+        </div>
+        <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="bar">
+          <div class="fill" id="fill"></div>
+          <div class="goal" aria-hidden="true">$1B</div>
+        </div>
+        <label class="mine">
+          <span>Your real total (Michael + Franklin + Trevor)</span>
+          <span class="mine-input">
+            <span aria-hidden="true">$</span>
+            <input id="mine" type="text" inputmode="numeric" placeholder="optional, e.g. 85,000,000" autocomplete="off" />
+          </span>
+        </label>
+      </section>
+
+      <section class="next" id="next" aria-live="polite"></section>
+
+      <section class="timeline-wrap">
+        <div class="timeline-head">
+          <h2>Timeline</h2>
+          <span class="count" id="count"></span>
+        </div>
+        <ol class="timeline" id="timeline"></ol>
+        <button class="reset" id="reset" type="button">Reset progress</button>
+      </section>
+
+      <footer class="notes">
+        <p><strong>Golden rules.</strong> Save before every investment. Pass time by sleeping or switching characters, and sell when the stock is up, never at a loss. Put <em>all</em> of every character's money in, except for what the mission costs.</p>
+        <p>LCN prices are worked out offline, so they behave the same for everyone; BAWSAQ prices can move differently. Cash figures are rough estimates: your real total depends on your heist crew and when you sell.</p>
+      </footer>
+    </main>
+
+    <div class="passed" id="passed" hidden>
+      <p class="passed-title">Mission passed</p>
+      <p class="passed-next" id="passed-next"></p>
+    </div>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

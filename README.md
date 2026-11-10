@@ -57,3 +57,31 @@ Shortcuts: `B` / `←` `→` change background, `F` fullscreen, `M` music.
 
 Images, logo and trailer are loaded from Rockstar Games and YouTube, so an internet connection is needed.
 Grand Theft Auto VI and all related imagery are © Rockstar Games / Take-Two Interactive.
+
+## GPS minimap (`/minimap/`)
+
+A separate page that turns real-world navigation into a game-style minimap: http://localhost:5173/minimap/ in dev,
+`<site>/minimap/` once deployed.
+
+- Type a destination (and optionally a start; blank means GPS), or click the map to drop a waypoint.
+- `Space` simulates driving the route, `[` `]` change drive speed, `Tab` switches to an alternative route,
+  `Esc` clears the waypoint, mouse wheel zooms.
+- With real GPS (phone, HTTPS) the player follows your position, the route trims as you drive and reroutes if you leave it.
+
+Map data © OpenStreetMap contributors via OpenFreeMap (no API key), routing by the public OSRM server,
+search by Photon. Map style: `minimap/mapStyle.js`; navigation and HUD: `minimap/main.js`.
+
+## iOS app (`ios/`)
+
+**Minimap Nav**: the back camera fills the screen and the minimap sits bottom-left as a HUD; the record button
+captures the screen (camera + HUD + mic) and saves the clip to Photos.
+
+- Open `ios/MinimapNav.xcodeproj` in Xcode, pick your iPhone and press Run (iOS 17+).
+- Tap the minimap to search for a waypoint, choose between alternative routes, start a demo drive or clear the waypoint.
+- The map style is shared with the web minimap: after changing `minimap/mapStyle.js`, run `node ios/tools/export-style.mjs`.
+
+## Road to a Billion (`/billion/`)
+
+A GTA V story-mode checklist: Lester's assassination missions plus which stock to buy before and after each one.
+Tick a mission off (or press **Mark mission complete**) and the next one comes up. Progress and your optional real
+bank total are saved in the browser. Steps and stock tips live in the `STEPS` array in `billion/main.js`.

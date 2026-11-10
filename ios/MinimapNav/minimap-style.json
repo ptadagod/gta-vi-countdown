@@ -1,0 +1,956 @@
+{
+  "version": 8,
+  "sources": {
+    "omt": {
+      "type": "vector",
+      "url": "https://tiles.openfreemap.org/planet"
+    },
+    "alts": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": []
+      }
+    },
+    "route": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": []
+      },
+      "lineMetrics": true
+    }
+  },
+  "light": {
+    "anchor": "map",
+    "position": [
+      1.4,
+      200,
+      40
+    ],
+    "color": "#fff3e2",
+    "intensity": 0.32
+  },
+  "layers": [
+    {
+      "id": "bg",
+      "type": "background",
+      "paint": {
+        "background-color": "#e4ddcf",
+        "background-opacity": 1
+      }
+    },
+    {
+      "id": "landuse",
+      "type": "fill",
+      "source": "omt",
+      "source-layer": "landuse",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "residential",
+            "suburb",
+            "neighbourhood"
+          ],
+          "#dfd7c8",
+          [
+            "industrial",
+            "commercial",
+            "retail",
+            "railway"
+          ],
+          "#d9d3c8",
+          [
+            "cemetery",
+            "pitch",
+            "stadium",
+            "playground"
+          ],
+          "#cbd0b2",
+          "#e4ddcf"
+        ],
+        "fill-opacity": 0.8
+      }
+    },
+    {
+      "id": "landcover",
+      "type": "fill",
+      "source": "omt",
+      "source-layer": "landcover",
+      "paint": {
+        "fill-color": [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          "wood",
+          "#c3c9aa",
+          [
+            "sand",
+            "rock",
+            "ice"
+          ],
+          "#ebe2ca",
+          "#cbd0b2"
+        ],
+        "fill-opacity": 0.85
+      }
+    },
+    {
+      "id": "park",
+      "type": "fill",
+      "source": "omt",
+      "source-layer": "park",
+      "paint": {
+        "fill-color": "#cbd0b2",
+        "fill-opacity": 0.9
+      }
+    },
+    {
+      "id": "aeroway",
+      "type": "fill",
+      "source": "omt",
+      "source-layer": "aeroway",
+      "filter": [
+        "==",
+        [
+          "geometry-type"
+        ],
+        "Polygon"
+      ],
+      "paint": {
+        "fill-color": "#d8d1c3",
+        "fill-opacity": 0.8
+      }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "omt",
+      "source-layer": "water",
+      "paint": {
+        "fill-color": "#9fb4ba",
+        "fill-outline-color": "#93a9b0",
+        "fill-opacity": 1,
+        "fill-antialias": true
+      }
+    },
+    {
+      "id": "waterway",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "waterway",
+      "layout": {
+        "line-cap": "round"
+      },
+      "paint": {
+        "line-color": "#9fb4ba",
+        "line-opacity": 1,
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          0.5,
+          18,
+          6
+        ]
+      }
+    },
+    {
+      "id": "path-casing",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "path",
+            "track"
+          ],
+          true,
+          false
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "brunnel"
+          ],
+          "tunnel"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#c4baa8",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0,
+          18,
+          3
+        ],
+        "line-opacity": 0.4
+      }
+    },
+    {
+      "id": "path-fill",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "path",
+            "track"
+          ],
+          true,
+          false
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "brunnel"
+          ],
+          "tunnel"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#faf7f1",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0,
+          18,
+          1.6
+        ],
+        "line-opacity": 0.7
+      }
+    },
+    {
+      "id": "minor-casing",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "minor",
+            "service"
+          ],
+          true,
+          false
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "brunnel"
+          ],
+          "tunnel"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#c4baa8",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          12,
+          0.5,
+          18,
+          14
+        ],
+        "line-opacity": 1
+      }
+    },
+    {
+      "id": "minor-fill",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "minor",
+            "service"
+          ],
+          true,
+          false
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "brunnel"
+          ],
+          "tunnel"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#faf7f1",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          12,
+          0.3,
+          18,
+          11
+        ],
+        "line-opacity": 1
+      }
+    },
+    {
+      "id": "tertiary-casing",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "tertiary",
+            "secondary"
+          ],
+          true,
+          false
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "brunnel"
+          ],
+          "tunnel"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#c4baa8",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          9,
+          0.6,
+          18,
+          22
+        ],
+        "line-opacity": 1
+      }
+    },
+    {
+      "id": "tertiary-fill",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "tertiary",
+            "secondary"
+          ],
+          true,
+          false
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "brunnel"
+          ],
+          "tunnel"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#faf7f1",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          9,
+          0.4,
+          18,
+          18
+        ],
+        "line-opacity": 1
+      }
+    },
+    {
+      "id": "primary-casing",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "primary",
+            "trunk"
+          ],
+          true,
+          false
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "brunnel"
+          ],
+          "tunnel"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#c4baa8",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          7,
+          0.8,
+          18,
+          28
+        ],
+        "line-opacity": 1
+      }
+    },
+    {
+      "id": "primary-fill",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "primary",
+            "trunk"
+          ],
+          true,
+          false
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "brunnel"
+          ],
+          "tunnel"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#fffdf8",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          7,
+          0.5,
+          18,
+          23
+        ],
+        "line-opacity": 1
+      }
+    },
+    {
+      "id": "motorway-casing",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "motorway"
+          ],
+          true,
+          false
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "brunnel"
+          ],
+          "tunnel"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#c4baa8",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          5,
+          1,
+          18,
+          34
+        ],
+        "line-opacity": 1
+      }
+    },
+    {
+      "id": "motorway-fill",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "motorway"
+          ],
+          true,
+          false
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "brunnel"
+          ],
+          "tunnel"
+        ]
+      ],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#fffdf8",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          5,
+          0.6,
+          18,
+          28
+        ],
+        "line-opacity": 1
+      }
+    },
+    {
+      "id": "rail",
+      "type": "line",
+      "source": "omt",
+      "source-layer": "transportation",
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "get",
+            "class"
+          ],
+          [
+            "rail",
+            "transit"
+          ],
+          true,
+          false
+        ],
+        [
+          "!=",
+          [
+            "get",
+            "brunnel"
+          ],
+          "tunnel"
+        ]
+      ],
+      "paint": {
+        "line-color": "#c2b9aa",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          12,
+          0.5,
+          18,
+          3
+        ]
+      }
+    },
+    {
+      "id": "building-shadow",
+      "type": "fill",
+      "source": "omt",
+      "source-layer": "building",
+      "minzoom": 14,
+      "paint": {
+        "fill-color": "#5b4f3d",
+        "fill-opacity": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0,
+          15.5,
+          0.14
+        ],
+        "fill-translate": [
+          3,
+          4
+        ],
+        "fill-translate-anchor": "map",
+        "fill-antialias": false
+      }
+    },
+    {
+      "id": "building-3d",
+      "type": "fill-extrusion",
+      "source": "omt",
+      "source-layer": "building",
+      "minzoom": 14,
+      "filter": [
+        "!=",
+        [
+          "get",
+          "hide_3d"
+        ],
+        true
+      ],
+      "paint": {
+        "fill-extrusion-color": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "coalesce",
+            [
+              "get",
+              "render_height"
+            ],
+            6
+          ],
+          0,
+          "#d6cdbd",
+          60,
+          "#e7e0d3"
+        ],
+        "fill-extrusion-height": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          14,
+          0,
+          15,
+          [
+            "*",
+            0.3,
+            [
+              "min",
+              160,
+              [
+                "coalesce",
+                [
+                  "get",
+                  "render_height"
+                ],
+                6
+              ]
+            ]
+          ]
+        ],
+        "fill-extrusion-base": [
+          "*",
+          0.3,
+          [
+            "min",
+            160,
+            [
+              "coalesce",
+              [
+                "get",
+                "render_min_height"
+              ],
+              0
+            ]
+          ]
+        ],
+        "fill-extrusion-opacity": 0.9,
+        "fill-extrusion-vertical-gradient": true
+      }
+    },
+    {
+      "id": "alts",
+      "type": "line",
+      "source": "alts",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#f2368f",
+        "line-opacity": 0.38,
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          2,
+          18,
+          10
+        ]
+      }
+    },
+    {
+      "id": "route-glow",
+      "type": "line",
+      "source": "route",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#f2368f",
+        "line-opacity": 0.35,
+        "line-blur": 6,
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          8,
+          18,
+          30
+        ]
+      }
+    },
+    {
+      "id": "route-casing",
+      "type": "line",
+      "source": "route",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#b81f68",
+        "line-opacity": 0.55,
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          4.5,
+          18,
+          17
+        ]
+      }
+    },
+    {
+      "id": "route",
+      "type": "line",
+      "source": "route",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#f2368f",
+        "line-width": [
+          "interpolate",
+          [
+            "exponential",
+            1.6
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          3,
+          18,
+          13
+        ]
+      }
+    }
+  ],
+  "name": "Minimap"
+}

@@ -1,0 +1,244 @@
+:root {
+  --pink: #f2368f;
+  --glass: rgba(16, 12, 20, 0.55);
+  --glass-line: rgba(255, 255, 255, 0.14);
+  --text: #f4efe8;
+  --muted: rgba(244, 239, 232, 0.55);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; height: 100%; }
+
+body {
+  background:
+    radial-gradient(120% 80% at 20% 0%, #3b1c3b 0%, transparent 60%),
+    radial-gradient(100% 70% at 100% 100%, #3a2216 0%, transparent 55%),
+    #0b0612;
+  color: var(--text);
+  font: 14px/1.4 Inter, system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.stage {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px 16px;
+}
+
+/* ---------- route form ---------- */
+
+.route-form {
+  position: relative;
+  z-index: 5;
+  width: min(100%, 780px);
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 8px;
+  transition: opacity 0.4s;
+}
+body.driving .route-form:not(:focus-within):not(:hover) { opacity: 0.28; }
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.field:focus-within { border-color: rgba(255, 255, 255, 0.34); }
+
+.field input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+}
+.field input::placeholder { color: var(--muted); }
+
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.dot-from { background: #111; box-shadow: 0 0 0 2px #fff; }
+.dot-to { background: var(--pink); box-shadow: 0 0 0 2px #fff; }
+
+.suggestions {
+  position: absolute;
+  top: 50px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 12px;
+  background: rgba(16, 12, 20, 0.9);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+.suggestions li {
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.suggestions li[aria-selected='true'], .suggestions li:hover { background: rgba(255, 255, 255, 0.09); }
+.suggestions .t { font-weight: 600; }
+.suggestions .s { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggestions .empty { color: var(--muted); cursor: default; }
+
+/* ---------- minimap ---------- */
+
+.frame {
+  width: min(100%, 780px);
+  padding: 6px;
+  border-radius: 28px;
+  background: rgba(14, 10, 16, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.minimap {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  max-height: calc(100dvh - 190px);
+  width: 100%;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #e4ddcf;
+  isolation: isolate;
+  cursor: crosshair;
+}
+@media (max-aspect-ratio: 3 / 4) {
+  .minimap { aspect-ratio: 4 / 5; }
+}
+
+#map { position: absolute; inset: 0; }
+
+/* Atmospheric haze at the far edge plus a soft inner vignette. */
+.haze {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(to bottom, rgba(233, 226, 213, 0.75) 0%, rgba(233, 226, 213, 0.25) 16%, transparent 34%);
+  box-shadow: inset 0 0 50px rgba(70, 56, 36, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.hud { position: absolute; inset: 0; pointer-events: none; }
+
+.distance {
+  position: absolute;
+  top: 14px;
+  left: 18px;
+  font: 800 28px/1 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 10px rgba(0, 0, 0, 0.25);
+  font-variant-numeric: tabular-nums;
+}
+
+.player, .waypoint, .north {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+
+.player svg { display: block; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35)); }
+.player { margin: -16px 0 0 -16px; }
+
+.waypoint {
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 16px rgba(242, 54, 143, 0.7);
+}
+.waypoint::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid var(--pink);
+  animation: ping 1.8s ease-out infinite;
+}
+@keyframes ping {
+  from { transform: scale(1); opacity: 0.8; }
+  to { transform: scale(2.4); opacity: 0; }
+}
+
+.north {
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(20, 18, 16, 0.7);
+  color: #fff;
+  font: 800 12px/1 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: rgba(16, 12, 20, 0.72);
+  color: #fff;
+  font: 600 16px/1.2 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Keep the required map attribution, but quiet. */
+.maplibregl-ctrl-bottom-right { right: 8px; bottom: 6px; }
+.maplibregl-ctrl-attrib.maplibregl-compact { background: rgba(255, 255, 255, 0.45); opacity: 0.55; }
+.maplibregl-ctrl-attrib.maplibregl-compact:hover { opacity: 1; }
+.maplibregl-canvas { cursor: crosshair; }
+
+/* ---------- hint ---------- */
+
+.hint {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+kbd {
+  font: 600 11px/1 Inter, sans-serif;
+  padding: 3px 6px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text);
+}
+
+@media (max-width: 640px) {
+  .stage { justify-content: flex-start; padding-top: max(16px, env(safe-area-inset-top)); }
+  .route-form { grid-template-columns: 1fr; }
+  .suggestions { top: 100px; }
+  .hint { display: none; }
+  .minimap { max-height: calc(100dvh - 150px); }
+}
