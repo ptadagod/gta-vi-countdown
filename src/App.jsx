@@ -3,6 +3,7 @@ import { FlaskConical } from 'lucide-react';
 import Background from './components/Background';
 import Loader from './components/Loader';
 import Nav from './components/Nav';
+import Controls from './components/Controls';
 import Hero from './components/Hero';
 import LaunchScreen from './components/LaunchScreen';
 import StageFlash from './components/StageFlash';
@@ -62,12 +63,13 @@ export default function App() {
 
   // ---------- Audio ----------
   const music = useRef(null);
-  const [musicOn, setMusicOn] = useState(false);
+  // Music is on by default (remembered if the visitor turns it off).
+  const [musicOn, setMusicOn] = useStoredState('gta6.music', true);
   const [alertsOn, setAlertsOn] = useStoredState('gta6.alerts', true);
   const toggleMusic = useCallback(() => {
     unlockAudio();
     setMusicOn((on) => !on);
-  }, []);
+  }, [setMusicOn]);
   const toggleAlerts = useCallback(() => {
     unlockAudio();
     setAlertsOn((on) => {
@@ -95,9 +97,27 @@ export default function App() {
 
   useEffect(() => {
     if (!music.current) music.current = new AmbientMusic();
-    // Ambient music pauses while the trailer is playing.
-    if (musicOn && !trailerOpen) music.current.start();
-    else music.current.stop();
+    const m = music.current;
+    // Music pauses while the trailer is playing.
+    if (!musicOn || trailerOpen) {
+      m.stop();
+      return;
+    }
+    // Try to autoplay straight away. Most browsers block sound until the visitor
+    // interacts with the page, so if it was blocked, start on their first tap,
+    // click or key press (but not when that tap is on the music button itself).
+    m.start();
+    const events = ['pointerdown', 'keydown', 'touchstart'];
+    const retry = (e) => {
+      if (e.target?.closest?.('[data-music-toggle]')) return;
+      unlockAudio();
+      if (m.audio.paused) {
+        m.playing = false;
+        m.start();
+      }
+    };
+    events.forEach((ev) => window.addEventListener(ev, retry, { passive: true }));
+    return () => events.forEach((ev) => window.removeEventListener(ev, retry));
   }, [musicOn, trailerOpen]);
   useEffect(() => () => music.current?.stop(), []);
 
@@ -145,17 +165,7 @@ export default function App() {
         <TrailerOverlay revealing={revealing} onFinished={onTrailerFinished} onRevealed={onTrailerRevealed} />
       )}
 
-      <Nav
-        now={now}
-        bg={{ index: safeBg, total: images.length }}
-        onPrevBg={prevBg}
-        onNextBg={nextBg}
-        musicOn={musicOn}
-        onToggleMusic={toggleMusic}
-        alertsOn={alertsOn}
-        onToggleAlerts={toggleAlerts}
-        fullscreen={fullscreen}
-      />
+      <Nav />
 
       <main>
         {stage.launched ? (
@@ -168,11 +178,20 @@ export default function App() {
 
         <div className="hero-foot">
           <LocalClock now={now} />
-          <span className="hero-foot__caption">
-            {images[safeBg].caption} · © Rockstar Games
-            <br />
-            Unofficial fan countdown
-          </span>
+          <div className="hero-foot__right">
+            <Controls
+              musicOn={musicOn}
+              onToggleMusic={toggleMusic}
+              alertsOn={alertsOn}
+              onToggleAlerts={toggleAlerts}
+              fullscreen={fullscreen}
+            />
+            <span className="hero-foot__caption">
+              {images[safeBg].caption} · © Rockstar Games
+              <br />
+              Unofficial fan countdown
+            </span>
+          </div>
         </div>
       </main>
 
