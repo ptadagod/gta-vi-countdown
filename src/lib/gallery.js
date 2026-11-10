@@ -44,18 +44,24 @@ const toImages = (list) =>
 export const GALLERY = toImages(RAW);
 
 /**
- * Portrait images for upright phones and tablets. These are Rockstar's own
- * mobile crops: the launch gallery's Jason & Lucia mobile image, plus the
- * portrait images from the main GTA VI page (https://www.rockstargames.com/VI).
+ * Portrait images for upright phones and tablets: the official phone wallpapers
+ * from https://www.rockstargames.com/VI/media/artwork-wallpapers
+ * (the cover-art collage and the postcard wallpapers are left out).
  */
 export const MOBILE_GALLERY = toImages([
-  ['mobile.0mi46.hy2kwfa.jpg', 'Vice City'],
-  ['mobile.0xsc-b1pnezup.jpg', 'Jason & Lucia'],
-  ['Jason_and_Lucia_14_Mobile.17zv0lmevzbgs.jpg', 'Jason & Lucia'],
-  ['musicMobile.16pdg34v6lit..jpg', 'Jason & Lucia · Artwork'],
-  ['screenshotsMobile.01nsldjqbta4u.jpg', 'Jason & Lucia'],
-  ['mediaMobile.0p_yfitphljim.jpg', 'Jason & Lucia'],
-  ['onlyInLeonidaMobile.0mupfnk-x6x~r.jpg', 'Only in Leonida'],
+  ['Jason_and_Lucia_01_phone.16wvfdwd_p8f0.jpg', 'Jason & Lucia'],
+  ['Jason_and_Lucia_Beach_phone.0_stuhzopjvgo.jpg', 'Jason & Lucia · Beach'],
+  ['Jason_Lucia_Lock_And_Load_phone.0ie39e_.q3v2a.jpg', 'Jason & Lucia · Lock and Load'],
+  ['Jason_and_Lucia_02_phone_A.078v57qolbs71.jpg', 'Jason & Lucia'],
+  ['Jason_and_Lucia_Robbery_phone.17u-34gj0wjex.jpg', 'Jason & Lucia · Robbery'],
+  ['Jason_and_Lucia_02_phone_B.05ardai.7063o.jpg', 'Jason & Lucia'],
+  ['Jason_and_Lucia_Motel_phone.06-dpvw7ja6mj.jpg', 'Jason & Lucia · Motel'],
+  ['Cal_Hampton_phone.0phbjn0pxhjdv.jpg', 'Cal Hampton'],
+  ['Boobie_Ike_phone.03yyy23tn2-z~.jpg', 'Boobie Ike'],
+  ['DreQuan_Priest_phone.003sj-0bd6.ug.jpg', 'DreQuan Priest'],
+  ['Real_Dimez_phone.12tkoe_bos_9m.jpg', 'Real Dimez'],
+  ['Raul_Bautista_phone.00y6zluvo8x5t.jpg', 'Raul Bautista'],
+  ['Brian_Heder_phone.01h8mp2helcq..jpg', 'Brian Heder'],
 ]);
 
 /** Which screens get the portrait set. */
