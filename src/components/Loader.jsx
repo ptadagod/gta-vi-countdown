@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { INTRO_LAYERS, LOGO_URL } from '../lib/gallery';
 
+/** Panels fly in one at a time, this far apart (logo timings live in index.css). */
+const PANEL_STAGGER_S = 0.25;
 /** Length of the cover fly-in, plus a short hold on the finished cover. */
-const INTRO_MS = 4200 + 500;
+const INTRO_MS = 5300 + 500;
 /** Give up on the intro if its layers haven't loaded by then. */
 const LAYER_TIMEOUT_MS = 5000;
 
@@ -86,7 +88,7 @@ export default function Loader({ done, onIntroDone }) {
               <img
                 key={i}
                 className={`intro__layer intro__layer--${l.kind}`}
-                style={{ '--z': l.z, '--rd': l.revealDelay != null ? `${l.revealDelay}s` : undefined }}
+                style={{ '--z': l.z, '--d': l.kind === 'shard' ? `${i * PANEL_STAGGER_S}s` : undefined }}
                 src={l.src(width)}
                 alt=""
                 draggable="false"
