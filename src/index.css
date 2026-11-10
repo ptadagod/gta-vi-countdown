@@ -130,15 +130,20 @@ img { display: block; max-width: 100%; }
   letter-spacing: 0.4em; font-size: 12px; color: var(--ink-faint);
 }
 
-/* ---------------- Cover fly-in intro ----------------
-   Rebuilds the GTA VI cover from Rockstar's layers. Timeline (seconds):
-   0.00–3.30  the nine panels fly in from depth ONE AT A TIME, 0.25s apart:
-              top row left → right, then bottom row left → right
-              (start delay --d set per panel), each landing with a light wash
-   2.90–3.90  dark logo panel settles in
-   3.00–4.20  "VI" flies in and fades on; pink glow blooms then fades (to ~5.0)
-   3.90–5.10  "grand theft auto" fades in from top to bottom, then a warm glow
-   0.00–5.00  the camera slowly pulls back from 1.43x */
+/* ---------------- Cover intro ----------------
+   A CSS port of Rockstar's own GTA VI cover timeline (rockstargames.com/VI).
+   Rockstar draws each layer at scale 5000 / (5000 + z); here that is
+   `perspective: 5000u` with the layer pushed TOWARD the viewer by -z, so every
+   panel starts larger than the screen and settles into place. Seconds:
+   0.00–2.60  all layers travel z → 0 (power3.inOut); deeper ones only come into
+              view later, so panels appear one after another
+   0.56       panels become half visible; 2.60–3.71 they go fully solid
+   rd–2.60    each panel's dark navy (#0C0D1B) silhouette fades into colour
+   1.67–2.23  "VI" fades on; 2.04–2.97 pink glow blooms; fades from 3.03
+   1.67–3.81  "grand theft auto" wipes on top → bottom; warm glow 2.47–4.14
+   2.41–2.88  dark logo panel fades on
+   0.00–3.53  camera pulls back from 1.4286x (power2.inOut); fades in over 1.3s
+   (u = one pixel of the 2560-wide artwork) */
 .intro {
   position: absolute; inset: 0; overflow: hidden;
   /* flex (not grid) so a cover wider than the screen stays centred */
@@ -146,12 +151,12 @@ img { display: block; max-width: 100%; }
 }
 .intro__stage {
   --cw: min(100vw, 177.78vh);            /* width of the 16:9 cover on screen */
-  --u: calc(var(--cw) / 2560);           /* one pixel of the 2560-wide artwork */
+  --u: calc(var(--cw) / 2560);
   position: relative; flex: none; width: var(--cw); aspect-ratio: 16 / 9;
-  perspective: var(--cw); perspective-origin: 50% 50%;
+  perspective: calc(5000 * var(--u)); perspective-origin: 50% 50%;
   animation:
-    introCamera 5s cubic-bezier(0.45, 0, 0.55, 1) both,
-    introFade 0.6s ease-out both;
+    introCamera 3.53s cubic-bezier(0.45, 0, 0.55, 1) both,
+    introFade 1.3s cubic-bezier(0.55, 0, 1, 0.45) both;
 }
 @media (orientation: portrait) {
   /* Phones: show the middle of the cover larger instead of a thin strip */
@@ -159,68 +164,80 @@ img { display: block; max-width: 100%; }
 }
 @keyframes introCamera { from { transform: scale(1.4286); } }
 @keyframes introFade { from { opacity: 0; } }
-@keyframes introFadeIn { from { opacity: 0; } }
 
 .intro__layer {
   position: absolute; inset: 0; width: 100%; height: 100%;
   user-select: none; -webkit-user-drag: none; pointer-events: none;
 }
+/* z → 0 over 2.6s (GSAP power3.inOut) */
 @keyframes introFly {
-  from { transform: translateZ(calc(var(--z) * var(--u))); }
+  from { transform: translateZ(calc(-1 * var(--z) * var(--u))); }
   to { transform: translateZ(0); }
 }
 
-/* Artwork panels: each flies in on its own, starting at --d */
+/* Artwork panels */
 .intro__layer--shard {
-  animation: introShardIn 1.3s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0s) both;
+  animation:
+    introFly 2.6s cubic-bezier(0.645, 0.045, 0.355, 1) both,
+    introShardAlpha 3.714s linear both,
+    introReveal calc(2.6s - var(--rd)) cubic-bezier(0.645, 0.045, 0.355, 1) var(--rd) both;
 }
-@keyframes introShardIn {
-  0% {
-    opacity: 0;
-    transform: translateZ(calc(var(--z) * var(--u)));
-    filter: brightness(2.6) saturate(0.3);
-  }
-  30% { opacity: 1; }
-  100% { opacity: 1; transform: translateZ(0); filter: none; }
+@keyframes introShardAlpha {
+  0%, 14.99% { opacity: 0; }                 /* hidden until 0.557s */
+  15% { opacity: 0.5; }                      /* half visible while moving */
+  70% { opacity: 0.5; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); } /* lands at 2.6s */
+  100% { opacity: 1; }                       /* solid at 3.71s */
+}
+/* dark navy silhouette → full colour */
+@keyframes introReveal {
+  from { filter: brightness(0.07) saturate(0.4); }
+  to { filter: brightness(1) saturate(1); }
 }
 
-/* Dark panel behind the logo */
+/* Dark panel behind the logo: fades on at 2.41s */
 .intro__layer--hole {
   animation:
-    introFly 1s cubic-bezier(0.16, 1, 0.3, 1) 2.9s both,
-    introFadeIn 0.5s ease-out 2.9s both;
+    introFly 2.6s cubic-bezier(0.645, 0.045, 0.355, 1) both,
+    introHole 2.878s both;
+}
+@keyframes introHole {
+  0%, 83.9% { opacity: 0; }
+  100% { opacity: 1; animation-timing-function: cubic-bezier(0.37, 0, 0.63, 1); }
 }
 
-/* "VI": fades on, then a pink glow blooms and fades */
+/* "VI" */
 .intro__layer--vi {
   animation:
-    introFly 1.2s cubic-bezier(0.16, 1, 0.3, 1) 3s both,
-    introFadeIn 0.6s linear 3s both,
-    introViGlow 1.7s linear 3.3s both;
+    introFly 2.6s cubic-bezier(0.645, 0.045, 0.355, 1) both,
+    introVi 4.141s linear both;
 }
-@keyframes introViGlow {
-  0% { filter: drop-shadow(0 0 calc(18 * var(--u)) rgba(255, 172, 253, 0)); }
-  50% { filter: drop-shadow(0 0 calc(108 * var(--u)) rgba(255, 172, 253, 1)); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+@keyframes introVi {
+  0%, 40.35% { opacity: 0; }
+  53.8%, 100% { opacity: 1; }
+  0%, 49.34% { filter: drop-shadow(0 0 calc(18 * var(--u)) rgba(255, 172, 253, 0)); }
+  71.74%, 73.1% { filter: drop-shadow(0 0 calc(108 * var(--u)) rgba(255, 172, 253, 1)); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
   100% { filter: drop-shadow(0 0 calc(108 * var(--u)) rgba(255, 172, 253, 0)); }
 }
 
-/* "grand theft auto": fades in from top to bottom, then a warm glow */
+/* "grand theft auto": top → bottom wipe with a 200px soft edge */
 .intro__layer--gta {
-  -webkit-mask-image: linear-gradient(180deg, #000 40%, transparent 60%);
-  mask-image: linear-gradient(180deg, #000 40%, transparent 60%);
-  -webkit-mask-size: 100% 300%; mask-size: 100% 300%;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(50% - 100 * var(--u)), transparent calc(50% + 100 * var(--u)));
+  mask-image: linear-gradient(to bottom, #000 calc(50% - 100 * var(--u)), transparent calc(50% + 100 * var(--u)));
+  -webkit-mask-size: 100% calc(3200 * var(--u)); mask-size: 100% calc(3200 * var(--u));
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   animation:
-    introGtaWipe 1.2s cubic-bezier(0.33, 1, 0.68, 1) 3.9s both,
-    introGtaGlow 1.3s linear 4.4s both;
+    introFly 2.6s cubic-bezier(0.645, 0.045, 0.355, 1) both,
+    introGtaWipe 2.136s cubic-bezier(0.5, 1, 0.89, 1) 1.671s both,
+    introGtaGlow 4.141s linear both;
 }
+/* mask edge travels from the top (y=0) to past the bottom (y=1440+200) */
 @keyframes introGtaWipe {
-  from { -webkit-mask-position: 0 100%; mask-position: 0 100%; }
-  to { -webkit-mask-position: 0 0%; mask-position: 0 0%; }
+  from { -webkit-mask-position: 0 calc(-1600 * var(--u)); mask-position: 0 calc(-1600 * var(--u)); }
+  to { -webkit-mask-position: 0 calc(40 * var(--u)); mask-position: 0 calc(40 * var(--u)); }
 }
 @keyframes introGtaGlow {
-  0% { filter: drop-shadow(0 0 calc(15 * var(--u)) rgba(255, 211, 152, 0)); }
-  40% { filter: drop-shadow(0 0 calc(15 * var(--u)) rgba(255, 211, 152, 1)); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
+  0%, 59.65% { filter: drop-shadow(0 0 calc(15 * var(--u)) rgba(255, 211, 152, 0)); }
+  73.1% { filter: drop-shadow(0 0 calc(15 * var(--u)) rgba(255, 211, 152, 1)); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45); }
   100% { filter: drop-shadow(0 0 calc(15 * var(--u)) rgba(255, 211, 152, 0)); }
 }
 

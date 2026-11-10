@@ -75,35 +75,39 @@ export function preferredWidth() {
 }
 
 /**
- * Layers of the GTA VI cover "fly-in" intro, from https://www.rockstargames.com/VI.
+ * Layers of the GTA VI cover intro, from https://www.rockstargames.com/VI.
  * Every layer is a full 2560×1440 transparent image with its panel already in
  * its final position, so stacking them rebuilds the cover.
  *
- * Listed in the order they appear: top row left → right, bottom row
- * left → right, then the logo panel, "VI" and "grand theft auto".
- * `z` is each panel's starting depth (2560-px canvas units, from Rockstar's
- * own timeline), so panels arrive from different distances.
+ * Motion matches Rockstar's own timeline: every layer starts at depth `z`
+ * (drawn at scale 5000 / (5000 + z), so a negative z starts it larger than the
+ * screen, in front of the camera) and settles to z = 0 over 2.6s. Deeper
+ * layers come into view later, so the panels appear one after another.
+ * Rockstar's nine depths are assigned here in the order: top row left → right,
+ * then bottom row left → right. `revealDelay` is when each panel's dark
+ * silhouette starts fading into full colour (Rockstar's values, same order).
  */
-const introLayer = (file, kind, z) => ({
+const introLayer = (file, kind, z, revealDelay) => ({
   kind, // 'shard' | 'hole' | 'vi' | 'gta'
   z,
+  revealDelay,
   src: (width) => `${BASE}${file}?akim=1&imdensity=1&imwidth=${width}`,
 });
 
 export const INTRO_LAYERS = [
   // Top row, left → right
-  introLayer('shard0.0_vm6ya9-h67x.png', 'shard', -5337), // helicopter
-  introLayer('shard1.14.-n-5n.4nws.png', 'shard', -4314), // Jason & Lucia
-  introLayer('shard2.0n4e6vntuoxgf.png', 'shard', -9177), // speedboat
-  introLayer('shard3.120i1.3ll3tb9.png', 'shard', -15243), // Raul
+  introLayer('shard0.0_vm6ya9-h67x.png', 'shard', -4314, 0.464), // helicopter
+  introLayer('shard1.14.-n-5n.4nws.png', 'shard', -5337, 0.557), // Jason & Lucia
+  introLayer('shard2.0n4e6vntuoxgf.png', 'shard', -6533, 0.65), // speedboat
+  introLayer('shard3.120i1.3ll3tb9.png', 'shard', -7760, 0.743), // Raul
   // Bottom row, left → right
-  introLayer('shard4.0bi8cg9mdh8p4.png', 'shard', -16634), // girl in green top
-  introLayer('shard5.0qdavlhu9vx3m.png', 'shard', -7760), // sports car
-  introLayer('shard6.0m27xv.6a~.pk.png', 'shard', -9440), // gator
-  introLayer('shard7.0r3-p5yp386ao.png', 'shard', -6533), // Boobie
-  introLayer('shard8.0-nawcceg2vqw.png', 'shard', -19197), // biker
+  introLayer('shard4.0bi8cg9mdh8p4.png', 'shard', -9177, 0.836), // girl in green top
+  introLayer('shard5.0qdavlhu9vx3m.png', 'shard', -9440, 0.929), // sports car
+  introLayer('shard6.0m27xv.6a~.pk.png', 'shard', -15243, 1.021), // gator
+  introLayer('shard7.0r3-p5yp386ao.png', 'shard', -16634, 1.114), // Boobie
+  introLayer('shard8.0-nawcceg2vqw.png', 'shard', -19197, 1.207), // biker
   // Logo
   introLayer('shard9.08p7clh5_sa.q.png', 'hole', -13435), // dark panel behind the logo
   introLayer('logo_vi.02gnpy7k4ozcz.png', 'vi', -13435), // "VI"
-  introLayer('logo_gta.0_~y3s2ni8fbj.png', 'gta'), // "grand theft auto" (fades in top → bottom)
+  introLayer('logo_gta.0_~y3s2ni8fbj.png', 'gta', -15853), // "grand theft auto" (wipes top → bottom)
 ];
