@@ -73,3 +73,33 @@ export function preferredWidth() {
   const sizes = [1280, 1920, 2560, 3840];
   return sizes.find((s) => s >= w) || 3840;
 }
+
+/**
+ * Layers of the GTA VI cover "fly-in" intro, from https://www.rockstargames.com/VI.
+ * Every layer is a full 2560×1440 transparent image with its panel already in
+ * its final position, so stacking them rebuilds the cover.
+ *
+ * Order (bottom → top), start depth `z` (in 2560-px canvas units) and reveal
+ * delays mirror Rockstar's own landscape timeline.
+ */
+const introLayer = (file, kind, z, revealDelay) => ({
+  kind, // 'shard' | 'hole' | 'vi' | 'gta'
+  z,
+  revealDelay,
+  src: (width) => `${BASE}${file}?akim=1&imdensity=1&imwidth=${width}`,
+});
+
+export const INTRO_LAYERS = [
+  introLayer('shard1.14.-n-5n.4nws.png', 'shard', -4314, 0.464), // Jason & Lucia
+  introLayer('shard0.0_vm6ya9-h67x.png', 'shard', -5337, 0.557), // helicopter
+  introLayer('shard7.0r3-p5yp386ao.png', 'shard', -6533, 0.65), // Boobie
+  introLayer('shard5.0qdavlhu9vx3m.png', 'shard', -7760, 0.743), // sports car
+  introLayer('shard2.0n4e6vntuoxgf.png', 'shard', -9177, 0.836), // speedboat
+  introLayer('shard6.0m27xv.6a~.pk.png', 'shard', -9440, 0.929), // gator
+  introLayer('shard8.0-nawcceg2vqw.png', 'shard', -19197, 1.021), // biker
+  introLayer('shard3.120i1.3ll3tb9.png', 'shard', -15243, 1.114), // Raul
+  introLayer('shard4.0bi8cg9mdh8p4.png', 'shard', -16634, 1.207), // gal
+  introLayer('shard9.08p7clh5_sa.q.png', 'hole', -13435), // dark panel behind the logo
+  introLayer('logo_vi.02gnpy7k4ozcz.png', 'vi', -13435), // "VI"
+  introLayer('logo_gta.0_~y3s2ni8fbj.png', 'gta', -15853), // "grand theft auto"
+];

@@ -20,8 +20,7 @@ import { AmbientMusic, playCompletionSound, unlockAudio } from './lib/audio';
 
 const AUTO_ROTATE_MS = 15000;
 const ANNOUNCE_MS = 5000; // how long "Pre Load now open" shows before the trailer
-const MIN_LOADER_MS = 1800;
-const MAX_LOADER_MS = 6000;
+const MAX_LOADER_MS = 12000;
 
 export default function App() {
   const now = useNow();
@@ -29,15 +28,15 @@ export default function App() {
   const fullscreen = useFullscreen();
 
   // ---------- Loading screen ----------
-  const [loaded, setLoaded] = useState(false);
-  const mountedAt = useRef(0);
-  const finishLoading = useCallback(() => {
-    const wait = Math.max(0, MIN_LOADER_MS - (performance.now() - mountedAt.current));
-    setTimeout(() => setLoaded(true), wait);
-  }, []);
+  // The page appears once the cover intro has played AND the first background is ready.
+  const [bgReady, setBgReady] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+  const loaded = (bgReady && introDone) || timedOut;
+  const finishLoading = useCallback(() => setBgReady(true), []);
+  const finishIntro = useCallback(() => setIntroDone(true), []);
   useEffect(() => {
-    mountedAt.current = performance.now();
-    const t = setTimeout(() => setLoaded(true), MAX_LOADER_MS); // never block on slow networks
+    const t = setTimeout(() => setTimedOut(true), MAX_LOADER_MS); // never block on slow networks
     return () => clearTimeout(t);
   }, []);
 
@@ -140,7 +139,7 @@ export default function App() {
   return (
     <div className={`app stage-${stage.id} ${loaded ? 'is-loaded' : ''}`}>
       <Background images={images} index={safeBg} onFirstLoad={finishLoading} celebrate={stage.launched} />
-      <Loader done={loaded} />
+      <Loader done={loaded} onIntroDone={finishIntro} />
       {flash && <StageFlash key={flash} label={flash} />}
       {(trailerOpen || revealing) && (
         <TrailerOverlay revealing={revealing} onFinished={onTrailerFinished} onRevealed={onTrailerRevealed} />
