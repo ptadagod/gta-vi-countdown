@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { INTRO_LAYERS, LOGO_URL } from '../lib/gallery';
 
-/** Length of the cover intro (Rockstar's timeline ends at 4.14s), plus a short hold. */
-const INTRO_MS = 4150 + 600;
+/** Length of the cover intro ("grand theft auto" finishes at ~5.1s), plus a short hold. */
+const INTRO_MS = 5100 + 500;
 /** Give up on the intro if its layers haven't loaded by then. */
 const LAYER_TIMEOUT_MS = 5000;
 
