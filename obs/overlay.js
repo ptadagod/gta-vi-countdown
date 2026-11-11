@@ -1,5 +1,5 @@
 import { CLUES, MAX_STARS, dollars, load, subscribe, svg } from './shared.js'
-import { weaponSvg } from './weapons.js'
+import { WEAPONS, weaponImg, weaponKey } from './weapons.js'
 
 // Options from the source URL, e.g. index.html?parts=wanted,money&scale=1.5
 const params = new URLSearchParams(location.search)
@@ -47,9 +47,10 @@ function render() {
   $('.special').classList.toggle('active', active)
   $('.tint').classList.toggle('on', active && parts.has('tint'))
 
-  const weapon = s.weapon ?? 'rifle'
+  const weapon = weaponKey(s.weapon)
   $('.weapon').hidden = !parts.has('weapon') || weapon === 'none'
-  if (weapon !== shownGun) { shownGun = weapon; $('.gun').innerHTML = weaponSvg(weapon) }
+  if (weapon !== shownGun) { shownGun = weapon; $('.gun').innerHTML = weaponImg(weapon) }
+  $('.ammo').style.visibility = WEAPONS[weapon]?.mag ? '' : 'hidden'
   $('.clip').textContent = s.clip ?? 0
   $('.clip').classList.toggle('empty', !s.clip)
   $('.reserve').textContent = s.ammo ?? 0
@@ -65,7 +66,7 @@ function render() {
 
   // Money sits where the stars are when you're not wanted, like the phone app.
   // Money shows while no weapon is out.
-  const money = s.money === 'always' || (s.money === 'auto' && (s.weapon ?? 'rifle') === 'none')
+  const money = s.money === 'always' || (s.money === 'auto' && weaponKey(s.weapon) === 'none')
   $('.money').hidden = !parts.has('money') || !money
   $('.bank .amount').textContent = dollars(s.bank)
   $('.cash .amount').textContent = dollars(s.cash)

@@ -18,7 +18,7 @@ export const defaults = {
   cash: 3146,
   specialUntil: 0, // purple screen tint while the special ability runs
   lights: 'behind', // where the police lights come from: behind | around | left | right | ahead
-  weapon: 'rifle', // rifle | pistol | none
+  weapon: 'smg', // pistol | smg | shotgun | binoculars | none
   clip: 20, // rounds in the gun
   ammo: 205, // rounds in reserve
   money: 'auto', // auto (hidden while a weapon is out) | always | off

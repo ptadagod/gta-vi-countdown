@@ -1,7 +1,7 @@
 import { CLUES, MAX_STARS, load, newRoomCode, onStatus, relayUrl, room, save, subscribe, svg } from './shared.js'
 import { searchPlaces } from '../minimap/geo.js'
 import { fetchRoute, formatDistance, locate } from './nav.js'
-import { WEAPONS } from './weapons.js'
+import { WEAPONS, weaponKey } from './weapons.js'
 
 // The control panel owns the game logic (blinking, evading, random reports, the special
 // ability timer) so every overlay source shows the same thing.
@@ -25,13 +25,13 @@ function raise(to) {
 // Fire rounds from the clip; an empty clip reloads by itself after a moment.
 let reloading = 0
 function shoot(n) {
-  if (state.weapon === 'none' || reloading) return
+  if (!WEAPONS[weaponKey(state.weapon)]?.mag || reloading) return
   set({ clip: Math.max(0, (state.clip ?? 0) - n) })
   if (state.clip === 0 && state.ammo > 0) reloading = setTimeout(() => { reloading = 0; reload() }, 1200)
 }
 
 function reload() {
-  const w = WEAPONS[state.weapon]
+  const w = WEAPONS[weaponKey(state.weapon)]
   if (!w) return
   const take = Math.min(w.mag - (state.clip ?? 0), state.ammo ?? 0)
   if (take > 0) set({ clip: state.clip + take, ammo: state.ammo - take })
@@ -129,8 +129,8 @@ function show() {
   if (focused !== $('#cash')) $('#cash').value = state.cash
   $('#lights').value = state.lights
   $('#money').value = state.money
-  $('#weapon').value = state.weapon ?? 'rifle'
-  $('#ammoOut').textContent = state.weapon === 'none' ? 'hidden' : `${state.clip ?? 0} / ${state.ammo ?? 0}`
+  $('#weapon').value = weaponKey(state.weapon)
+  $('#ammoOut').textContent = weaponKey(state.weapon) === 'none' ? 'hidden' : !WEAPONS[weaponKey(state.weapon)].mag ? 'no ammo' : `${state.clip ?? 0} / ${state.ammo ?? 0}`
   $('#evade').classList.toggle('on', state.evading)
   $('#evade').textContent = state.evading ? 'Evading…' : 'Evade'
   $('#useSpecial').classList.toggle('on', state.specialUntil > Date.now())
