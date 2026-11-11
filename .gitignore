@@ -35,3 +35,9 @@ ios/**/*.xcuserstate
 
 # Wrangler local state
 .wrangler/
+ios/build/
+# Font files are kept local only (licensed fonts must not be published)
+obs/fonts/*.otf
+ios/MinimapNav/*.otf
+ios/MinimapNav/fist.png
+ios/MinimapNav/icon-*.png

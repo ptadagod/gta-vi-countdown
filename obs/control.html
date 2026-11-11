@@ -89,12 +89,34 @@
       <section>
         <h2>Health <span class="readout" id="healthOut"></span></h2>
         <input type="range" id="health" min="0" max="100" />
+        <h2>Stamina <span class="readout" id="staminaOut"></span></h2>
+        <input type="range" id="stamina" min="0" max="100" />
         <h2>Special ability <span class="readout" id="specialOut"></span></h2>
         <input type="range" id="special" min="0" max="100" />
         <div class="row">
           <button data-act="special" id="useSpecial">Use special (15 s)</button>
         </div>
         <label class="check"><input type="checkbox" id="recharge" /> Recharge special slowly (full in 2 min)</label>
+      </section>
+
+      <section>
+        <h2>Weapon <span class="readout" id="ammoOut"></span></h2>
+        <label class="field">Weapon
+          <select id="weapon">
+            <option value="rifle">Rifle</option>
+            <option value="pistol">Pistol</option>
+            <option value="shotgun">Shotgun</option>
+            <option value="none">Hidden</option>
+          </select>
+        </label>
+        <div class="row">
+          <button data-act="shoot">Shoot</button>
+          <button data-act="burst">Burst (5)</button>
+          <button data-act="reload">Reload</button>
+        </div>
+        <div class="row">
+          <button data-act="ammo+">+100 ammo</button>
+        </div>
       </section>
 
       <section>
@@ -107,7 +129,7 @@
         </div>
         <label class="field">Show money
           <select id="money">
-            <option value="auto">When not wanted</option>
+            <option value="auto">When no weapon is out</option>
             <option value="always">Always</option>
             <option value="off">Never</option>
           </select>

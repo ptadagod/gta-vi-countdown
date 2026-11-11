@@ -1,8 +1,9 @@
 import { CLUES, MAX_STARS, dollars, load, subscribe, svg } from './shared.js'
+import { weaponSvg } from './weapons.js'
 
 // Options from the source URL, e.g. index.html?parts=wanted,money&scale=1.5
 const params = new URLSearchParams(location.search)
-const parts = new Set((params.get('parts') || 'health,special,wanted,money,lights,tint,minimap,directions').split(','))
+const parts = new Set((params.get('parts') || 'health,stamina,special,weapon,wanted,money,lights,tint,minimap,directions').split(','))
 const scale = Number(params.get('scale')) || 1
 document.documentElement.style.setProperty('--u', `${2 * scale}px`)
 if (params.has('preview')) document.body.classList.add('preview')
@@ -10,6 +11,7 @@ document.querySelectorAll('[data-part]').forEach((el) => { el.hidden = !parts.ha
 
 const $ = (s) => document.querySelector(s)
 $('.health .badge').innerHTML = svg('heart')
+$('.stamina .badge').innerHTML = svg('bolt')
 $('.special .badge').innerHTML = svg('eye')
 $('.stars').innerHTML = Array.from({ length: MAX_STARS }, () => `<span class="star">${svg('star')}</span>`).join('')
 const stars = [...document.querySelectorAll('.star')]
@@ -31,15 +33,26 @@ function ring(name, color, progress) {
 }
 
 let shownClues = ''
+let shownGun = ''
 function render() {
   const s = state
   $('.health .fill').style.width = `${s.health * 100}%`
   $('.health').classList.toggle('low', s.health < 0.2)
+  const stamina = s.stamina ?? 1
+  $('.stamina .fill').style.width = `${stamina * 100}%`
+  $('.stamina').classList.toggle('low', stamina < 0.2)
   const active = s.specialUntil > Date.now()
   $('.special .fill').style.width = `${s.special * 100}%`
   $('.special').classList.toggle('full', s.special >= 1)
   $('.special').classList.toggle('active', active)
   $('.tint').classList.toggle('on', active && parts.has('tint'))
+
+  const weapon = s.weapon ?? 'rifle'
+  $('.weapon').hidden = !parts.has('weapon') || weapon === 'none'
+  if (weapon !== shownGun) { shownGun = weapon; $('.gun').innerHTML = weaponSvg(weapon) }
+  $('.clip').textContent = s.clip ?? 0
+  $('.clip').classList.toggle('empty', !s.clip)
+  $('.reserve').textContent = s.ammo ?? 0
 
   $('.wanted').classList.toggle('off', s.stars === 0)
   const clues = CLUES.filter((c) => s.clues.includes(c)).join()
@@ -51,7 +64,8 @@ function render() {
   }
 
   // Money sits where the stars are when you're not wanted, like the phone app.
-  const money = s.money === 'always' || (s.money === 'auto' && s.stars === 0)
+  // Money shows while no weapon is out.
+  const money = s.money === 'always' || (s.money === 'auto' && (s.weapon ?? 'rifle') === 'none')
   $('.money').hidden = !parts.has('money') || !money
   $('.bank .amount').textContent = dollars(s.bank)
   $('.cash .amount').textContent = dollars(s.cash)

@@ -105,6 +105,18 @@ final class WantedLevel {
             learn(Clue.allCases.filter { !clues.contains($0) }.randomElement()!)
         }
     }
+    /// Tap control: 1 → 2 → … → 6 stars, then back to none.
+    func cycleStars() {
+        if stars >= Self.maxStars { clear(); return }
+        stars += 1
+        justRaised = true
+        raisedAt = .now
+        cleanFor = 0
+        evading = false
+        if clues.count < Clue.allCases.count {
+            learn(Clue.allCases.filter { !clues.contains($0) }.randomElement()!)
+        }
+    }
     func clear() {
         stars = 0
         clues = []

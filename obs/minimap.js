@@ -67,10 +67,10 @@ export function startMinimap(getState, showDirections) {
     view.heading = (view.heading + angleDiff(view.heading, here.heading) * (far ? 1 : ease(4, dt)) + 360) % 360
     const fast = Math.min(1, here.speed / 28)
     view.zoom = lerp(view.zoom, 15.8 - fast * 1.1, ease(1.5, dt))
-    const b = map.getBearing()
+    // The map turns with you, so you always face straight up.
     map.jumpTo({
       center: view.pos,
-      bearing: far ? view.heading : b + angleDiff(b, view.heading) * ease(2.2, dt),
+      bearing: view.heading,
       pitch: PITCH,
       zoom: view.zoom,
       padding: { top: h * 0.4, bottom: 0, left: 0, right: 0 },

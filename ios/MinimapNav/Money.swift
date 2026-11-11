@@ -1,3 +1,4 @@
+import CoreText
 import Observation
 import SwiftUI
 
@@ -58,10 +59,12 @@ struct MoneyHUD: View {
         .accessibilityLabel("Bank \(Self.dollars(money.bank)), cash \(Self.dollars(money.cash))")
     }
 
+    private static let cashFont = HUDFont.font(size: 17)
+
     private func line(_ amount: Int, icon: String, color: Color, progress: Double) -> some View {
         HStack(spacing: 6) {
             Text(Self.dollars(amount))
-                .font(.system(size: 17, weight: .heavy).width(.condensed).monospacedDigit())
+                .font(Self.cashFont)
                 .foregroundStyle(.white)
                 .shadow(color: .black.opacity(0.8), radius: 0, x: 1, y: 1)
                 .shadow(color: .black.opacity(0.5), radius: 3)
@@ -123,5 +126,23 @@ struct MoneySection: View {
         } label: {
             Label(title, systemImage: icon)
         }
+    }
+}
+
+/// The HUD number font (the bundled HustleCash-Black.otf), used for money and ammo.
+enum HUDFont {
+    /// The font's own name, read from the file, after registering it once.
+    private static let name: String? = {
+        guard let url = Bundle.main.url(forResource: "HustleCash-Black", withExtension: "otf"),
+              let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url as CFURL) as? [CTFontDescriptor],
+              let first = descriptors.first,
+              let name = CTFontDescriptorCopyAttribute(first, kCTFontNameAttribute) as? String else { return nil }
+        CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+        return name
+    }()
+
+    static func font(size: CGFloat) -> Font {
+        if let name { return .custom(name, fixedSize: size) }
+        return .system(size: size, weight: .heavy).width(.condensed).monospacedDigit()
     }
 }

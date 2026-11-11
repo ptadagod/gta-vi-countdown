@@ -22,6 +22,9 @@ final class SpecialAbility {
         }
     }
 
+    /// An injector: straight back to full.
+    func refill() { level = 1 }
+
     func activate() {
         guard isFull, !active else { return }
         active = true
@@ -61,4 +64,29 @@ struct SpecialTint: View {
             .accessibilityHidden(true)
     }
     static let alpha = 0.2
+}
+
+/// Stamina meter. Just for looks: it stays where it is and isn't tied to driving.
+@MainActor @Observable
+final class Stamina {
+    var level = 1.0 // 0...1
+}
+
+/// The neon green bar between health and special.
+struct StaminaBar: View {
+    let stamina: Stamina
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 0.05)) { t in
+            // Always a faint neon glow; flashes when nearly empty.
+            let low = stamina.level < 0.2
+            let flash = low ? 0.5 + 0.5 * sin(t.date.timeIntervalSinceReferenceDate * 2 * .pi / 0.7) : 0
+            StatBar(icon: "bolt.fill", color: Color(red: 0.49, green: 0.95, blue: 0.86),
+                    level: stamina.level, glow: low ? flash : 0.6)
+        }
+        .animation(.linear(duration: 1), value: stamina.level)
+        .accessibilityElement()
+        .accessibilityLabel("Stamina")
+        .accessibilityValue("\(Int(stamina.level * 100)) percent")
+    }
 }

@@ -69,7 +69,7 @@ final class PoliceGlowModel {
     func glows(in size: CGSize, at now: Date, nav: Navigator, wanted: WantedLevel) -> [Glow] {
         let dt = min(0.5, max(0, now.timeIntervalSince(last ?? now)))
         last = now
-        var cops = wanted.stars > 0 && nav.inCar ? wanted.police : []
+        var cops = wanted.stars > 0 ? wanted.police : []
         // At most two sets of lights (the two nearest cars); more stars make them stronger instead.
         if let here = nav.position, cops.count > 2 {
             cops = Array(cops.sorted { Geo.distance($0, here) < Geo.distance($1, here) }.prefix(2))

@@ -1,6 +1,7 @@
 import { CLUES, MAX_STARS, load, newRoomCode, onStatus, relayUrl, room, save, subscribe, svg } from './shared.js'
 import { searchPlaces } from '../minimap/geo.js'
 import { fetchRoute, formatDistance, locate } from './nav.js'
+import { WEAPONS } from './weapons.js'
 
 // The control panel owns the game logic (blinking, evading, random reports, the special
 // ability timer) so every overlay source shows the same thing.
@@ -19,6 +20,21 @@ function raise(to) {
   if (n <= state.stars) return
   set({ stars: n, raisedAt: Date.now(), evading: false })
   evadeFor = 0
+}
+
+// Fire rounds from the clip; an empty clip reloads by itself after a moment.
+let reloading = 0
+function shoot(n) {
+  if (state.weapon === 'none' || reloading) return
+  set({ clip: Math.max(0, (state.clip ?? 0) - n) })
+  if (state.clip === 0 && state.ammo > 0) reloading = setTimeout(() => { reloading = 0; reload() }, 1200)
+}
+
+function reload() {
+  const w = WEAPONS[state.weapon]
+  if (!w) return
+  const take = Math.min(w.mag - (state.clip ?? 0), state.ammo ?? 0)
+  if (take > 0) set({ clip: state.clip + take, ammo: state.ammo - take })
 }
 
 function learn(clue) {
@@ -58,6 +74,10 @@ document.addEventListener('click', (e) => {
       break
     case 'drive': toggleDrive(); break
     case 'clearDest': setNav({ dest: null, destName: '', route: null, ...stopped() }); $('#destSearch').value = ''; break
+    case 'shoot': shoot(1); break
+    case 'burst': shoot(5); break
+    case 'reload': reload(); break
+    case 'ammo+': set({ ammo: (state.ammo ?? 0) + 100 }); break
     case 'cash+100': set({ cash: state.cash + 100 }); break
     case 'cash+1000': set({ cash: state.cash + 1000 }); break
     case 'copy':
@@ -74,9 +94,14 @@ document.addEventListener('click', (e) => {
 })
 
 $('#health').addEventListener('input', (e) => set({ health: e.target.value / 100 }))
+$('#stamina').addEventListener('input', (e) => set({ stamina: e.target.value / 100 }))
 $('#special').addEventListener('input', (e) => set({ special: e.target.value / 100 }))
 $('#lights').addEventListener('change', (e) => set({ lights: e.target.value }))
 $('#money').addEventListener('change', (e) => set({ money: e.target.value }))
+$('#weapon').addEventListener('change', (e) => {
+  const w = WEAPONS[e.target.value]
+  set({ weapon: e.target.value, ...(w ? { clip: Math.min(state.clip ?? 0, w.mag) } : {}) })
+})
 $('#bank').addEventListener('change', (e) => set({ bank: Math.max(0, Math.round(+e.target.value || 0)) }))
 $('#cash').addEventListener('change', (e) => set({ cash: Math.max(0, Math.round(+e.target.value || 0)) }))
 for (const id of ['random', 'recharge']) {
@@ -94,14 +119,18 @@ function show() {
   $('#navOut').textContent = here.track ? `${formatDistance(here.track.length - here.along)} to go` : nav.dest ? 'Routing…' : ''
   $('#starsOut').textContent = `${state.stars}★`
   $('#healthOut').textContent = `${Math.round(state.health * 100)}%`
+  $('#staminaOut').textContent = `${Math.round((state.stamina ?? 1) * 100)}%`
   $('#specialOut').textContent = `${Math.round(state.special * 100)}%`
   const focused = document.activeElement
   if (focused !== $('#health')) $('#health').value = Math.round(state.health * 100)
+  if (focused !== $('#stamina')) $('#stamina').value = Math.round((state.stamina ?? 1) * 100)
   if (focused !== $('#special')) $('#special').value = Math.round(state.special * 100)
   if (focused !== $('#bank')) $('#bank').value = state.bank
   if (focused !== $('#cash')) $('#cash').value = state.cash
   $('#lights').value = state.lights
   $('#money').value = state.money
+  $('#weapon').value = state.weapon ?? 'rifle'
+  $('#ammoOut').textContent = state.weapon === 'none' ? 'hidden' : `${state.clip ?? 0} / ${state.ammo ?? 0}`
   $('#evade').classList.toggle('on', state.evading)
   $('#evade').textContent = state.evading ? 'Evading…' : 'Evade'
   $('#useSpecial').classList.toggle('on', state.specialUntil > Date.now())
@@ -271,8 +300,8 @@ $('#roomCode').textContent = room
 $('#overlayUrl').textContent = linkFor('index.html')
 $('#dockUrl').textContent = linkFor('control.html')
 const pieces = [
-  ['Health + special', 'parts=health,special'],
-  ['Wanted + money', 'parts=wanted,money'],
+  ['Health, stamina + special', 'parts=health,stamina,special'],
+  ['Weapon + wanted + money', 'parts=weapon,wanted,money'],
   ['Police lights + purple tint', 'parts=lights,tint'],
   ['Minimap + turn box', 'parts=minimap,directions'],
 ]

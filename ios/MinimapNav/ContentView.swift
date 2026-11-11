@@ -21,6 +21,9 @@ struct ContentView: View {
     @State private var wanted = WantedLevel()
     @State private var policeGlow = PoliceGlowModel()
     @State private var special = SpecialAbility()
+    @State private var stamina = Stamina()
+    @State private var weapon = Weapon()
+    @State private var showWheel = false
     @State private var carLink = CarLink()
     @State private var money = Money()
     private let hudInset: CGFloat = 24
@@ -32,6 +35,9 @@ struct ContentView: View {
             ZStack {
                 CameraPreview(camera: camera, ready: cameraReady)
                     .ignoresSafeArea()
+                    // Tap anywhere on the camera: one more wanted star each tap, then back to none after 6.
+                    .contentShape(Rectangle())
+                    .onTapGesture { wanted.cycleStars() }
                     .overlay {
                         if let cameraMessage {
                             ZStack {
@@ -53,31 +59,42 @@ struct ContentView: View {
                     HStack {
                         HUDHost(onView: { recorder.addHUD($0, key: "health") }) {
                             VStack(alignment: .leading, spacing: 4) {
-                                HealthBar()
+                                HealthBar(healedAt: weapon.healedAt)
+                                StaminaBar(stamina: stamina)
                                 SpecialBar(ability: special)
                             }
                             .frame(width: mapWidth + 8)
                             .padding(hudInset)
                         }
                         .frame(width: mapWidth + 8 + hudInset * 2,
-                               height: StatBar.badge * 2 + 4 + hudInset * 2)
+                               height: StatBar.badge * 3 + 8 + hudInset * 2)
                         .padding(-hudInset)
                         Spacer()
                         HUDHost(onView: { recorder.addHUD($0, key: "wanted") }) {
-                            // In the car: wanted level. On foot: money.
-                            ZStack(alignment: .topTrailing) {
-                                if carLink.inCar {
+                            // Wanted level, then the weapon under it; money only while the weapon is put away.
+                            VStack(alignment: .trailing, spacing: 6) {
+                                if wanted.stars > 0 {
                                     WantedStars(wanted: wanted).transition(.opacity)
+                                }
+                                // While wanted only the weapon shows (the fist if unarmed), never cash.
+                                if weapon.active || wanted.stars > 0 {
+                                    WeaponHUD(weapon: weapon) { showWheel = true }.transition(.opacity)
                                 } else {
-                                    MoneyHUD(money: money).transition(.opacity)
+                                    MoneyHUD(money: money)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture { showWheel = true }
+                                        .transition(.opacity)
                                 }
                             }
-                            .frame(width: WantedStars.width, height: max(WantedStars.height, MoneyHUD.height), alignment: .topTrailing)
-                            .animation(.easeOut(duration: 0.3), value: carLink.inCar)
+                            .frame(width: WantedStars.width,
+                                   height: WantedStars.height + 6 + max(WeaponHUD.height, MoneyHUD.height),
+                                   alignment: .topTrailing)
+                            .animation(.easeOut(duration: 0.3), value: wanted.stars > 0)
+                            .animation(.easeOut(duration: 0.3), value: weapon.active)
                             .padding(hudInset)
                         }
                         .frame(width: WantedStars.width + hudInset * 2,
-                               height: max(WantedStars.height, MoneyHUD.height) + hudInset * 2)
+                               height: WantedStars.height + 6 + max(WeaponHUD.height, MoneyHUD.height) + hudInset * 2)
                         .padding(-hudInset)
                     }
                     Spacer()
@@ -129,14 +146,69 @@ struct ContentView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 14)
 
-                // While recording only the camera and minimap are on screen: tap anywhere to stop.
+                // Weapon wheel over everything, with the camera blurred behind it.
+                if showWheel {
+                    WeaponWheel(weapon: weapon) { showWheel = false }
+                        .ignoresSafeArea()
+                        .zIndex(10)
+                }
+
+                // Pills and injector in the bottom-left corner while the wheel is open.
+                if showWheel {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            ConsumablesView(weapon: weapon, special: special)
+                            Spacer()
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 14)
+                    .transition(.opacity)
+                    .zIndex(12)
+                }
+
+                // The meter bars and cash stay sharp on top of the blur while the wheel is open.
+                if showWheel {
+                    // Same frames as the HUD row underneath, so nothing shifts when it appears.
+                    VStack {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HealthBar(healedAt: weapon.healedAt)
+                                StaminaBar(stamina: stamina)
+                                SpecialBar(ability: special)
+                            }
+                            .frame(width: mapWidth + 8, height: StatBar.badge * 3 + 8)
+                            Spacer()
+                            // Money takes the top spot (where the stars are) while the wheel is open,
+                            // except while wanted.
+                            VStack(alignment: .trailing, spacing: 6) {
+                                if wanted.stars == 0 { MoneyHUD(money: money) }
+                            }
+                            .frame(width: WantedStars.width,
+                                   height: WantedStars.height + 6 + max(WeaponHUD.height, MoneyHUD.height),
+                                   alignment: .topTrailing)
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 14)
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+                    .zIndex(11)
+                }
+
+                // While recording there's no record button: tap still adds a star, and holding
+                // anywhere for a second stops the recording.
                 if recorder.isRecording {
                     Color.clear
                         .contentShape(Rectangle())
                         .ignoresSafeArea()
-                        .onTapGesture { recorder.toggle { nav.show($0) } }
+                        .onTapGesture { wanted.cycleStars() }
+                        .onLongPressGesture(minimumDuration: 0.8) { recorder.toggle { nav.show($0) } }
                         .accessibilityLabel("Stop recording")
                         .accessibilityAddTraits(.isButton)
+                        .accessibilityAction { recorder.toggle { nav.show($0) } }
                 }
             }
         }
@@ -216,14 +288,22 @@ private struct HUDHost<Content: View>: UIViewControllerRepresentable {
 /// Health bar that tracks the phone's battery: green when full, amber below half,
 /// red and pulsing below 20%.
 private struct HealthBar: View {
+    var healedAt: Date? = nil
     @State private var level = Self.read()
     @State private var pulse = false
+    @State private var healFlash = false
 
     var body: some View {
         // Pastel pink with a marker at the halfway point; flashes when the battery is low.
         StatBar(icon: "heart.fill", color: Color(red: 0.93, green: 0.72, blue: 0.80),
                 level: level, marker: 0.5, showsTrack: true)
             .opacity(level < 0.2 && pulse ? 0.45 : 1)
+            // A quick white flash when you take a pill.
+            .brightness(healFlash ? 0.35 : 0)
+            .onChange(of: healedAt) {
+                withAnimation(.easeOut(duration: 0.15)) { healFlash = true }
+                withAnimation(.easeIn(duration: 0.6).delay(0.2)) { healFlash = false }
+            }
             .animation(.easeOut(duration: 0.6), value: level)
             .onAppear {
                 UIDevice.current.isBatteryMonitoringEnabled = true
@@ -461,7 +541,7 @@ private struct RecordButton: View {
     var body: some View {
         VStack(spacing: 6) {
             Button {
-                if !recorder.isRecording { report("Tap anywhere to stop recording") }
+                if !recorder.isRecording { report("Hold anywhere to stop recording") }
                 recorder.toggle(report: report)
             } label: {
                 ZStack {

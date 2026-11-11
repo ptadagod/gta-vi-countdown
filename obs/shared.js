@@ -8,6 +8,7 @@ export const CLUES = ['witnesses', 'clothing', 'face', 'vehicle']
 
 export const defaults = {
   health: 1,
+  stamina: 0.8,
   special: 0.6,
   stars: 0,
   clues: [],
@@ -17,7 +18,10 @@ export const defaults = {
   cash: 3146,
   specialUntil: 0, // purple screen tint while the special ability runs
   lights: 'behind', // where the police lights come from: behind | around | left | right | ahead
-  money: 'auto', // auto (hidden while wanted) | always | off
+  weapon: 'rifle', // rifle | pistol | none
+  clip: 20, // rounds in the gun
+  ammo: 205, // rounds in reserve
+  money: 'auto', // auto (hidden while a weapon is out) | always | off
   // Minimap: where you are, the waypoint and route, and the pretend drive along it.
   nav: { pos: null, heading: 0, dest: null, destName: '', route: null, drive: { on: false, t0: 0, s0: 0, kmh: 50 } },
 }
@@ -138,6 +142,7 @@ export const dollars = (n) => '$' + Math.max(0, Math.round(n)).toLocaleString('e
 // 24×24 icons.
 export const icons = {
   heart: '<path d="M12 21.3l-1.5-1.3C5.4 15.4 2 12.3 2 8.5 2 5.4 4.4 3 7.5 3c1.7 0 3.4.8 4.5 2.1C13.1 3.8 14.8 3 16.5 3 19.6 3 22 5.4 22 8.5c0 3.8-3.4 6.9-8.5 11.5z"/>',
+  bolt: '<path d="M13.5 2 4 13.5h6.5L9 22l10-12.5h-6.6z"/>',
   eye: '<path fill-rule="evenodd" d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5c-1.7-4.4-6-7.5-11-7.5zM12 17a5 5 0 110-10 5 5 0 010 10zm0-2.2a2.8 2.8 0 100-5.6 2.8 2.8 0 000 5.6z"/>',
   star: '<path d="M12 1.8l3.15 6.6 7.25.95-5.3 5.05 1.35 7.2L12 18.1l-6.45 3.5 1.35-7.2-5.3-5.05 7.25-.95z"/>',
   witnesses: '<path d="M16 11a3 3 0 100-6 3 3 0 000 6zm-8 0a3 3 0 100-6 3 3 0 000 6zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5C15 14.2 10.3 13 8 13zm8 0c-.3 0-.6 0-1 .1 1.2.8 2 2 2 3.4V19h6v-2.5c0-2.3-4.7-3.5-7-3.5z"/>',

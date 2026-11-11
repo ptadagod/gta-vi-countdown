@@ -4,11 +4,19 @@
   --u: 2px;
   --pink: #edb8cc;
   --lavender: #ab94fa;
+  --neon: #7cf2dc;
   --clue: #8c1a1c;
   --bank: #b87aff;
   --cash: #8ce080;
   --badge-bg: rgba(56, 56, 56, 0.92);
   --inset: calc(var(--u) * 24);
+}
+
+/* Hustle Cash: our own money font (obs/fonts/build_hustle_cash.py makes it). */
+@font-face {
+  font-family: 'Hustle Cash';
+  src: url('./fonts/HustleCash-Black.otf') format('opentype');
+  font-display: block;
 }
 
 * { box-sizing: border-box; }
@@ -65,6 +73,7 @@ body.preview {
   gap: calc(var(--u) * 5);
   height: calc(var(--u) * 22);
 }
+.bar.stamina { --c: var(--neon); }
 .bar.special { --c: var(--lavender); }
 
 .badge {
@@ -94,6 +103,8 @@ body.preview {
   background: var(--c);
   transition: width 0.6s ease-out;
 }
+.stamina .fill { box-shadow: 0 0 calc(var(--u) * 4) color-mix(in srgb, var(--c) 70%, transparent); }
+.stamina.low .fill { animation: glow 0.7s ease-in-out infinite alternate; }
 .special.full .fill, .special.active .fill {
   animation: glow 1.4s ease-in-out infinite alternate;
 }
@@ -126,6 +137,29 @@ body.preview {
   align-items: flex-end;
   gap: calc(var(--u) * 8);
 }
+
+/* Weapon and ammo, under the wanted level. */
+.weapon {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(var(--u) * 1);
+}
+.ammo {
+  display: flex;
+  gap: calc(var(--u) * 10);
+  font: calc(var(--u) * 18) / 1 'Hustle Cash', 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  color: #fff;
+  text-shadow: 0 calc(var(--u) * 0.6) calc(var(--u) * 1.5) rgba(0, 0, 0, 0.55);
+}
+.ammo .reserve { color: #a3a3a3; }
+.ammo .clip.empty { color: #e05050; }
+.gun {
+  width: calc(var(--u) * 72);
+  height: calc(var(--u) * 24.75);
+  filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 1.5) rgba(0, 0, 0, 0.45));
+}
+.gun svg { width: 100%; height: 100%; display: block; }
 
 .wanted {
   display: flex;
@@ -180,9 +214,10 @@ body.preview {
   height: calc(var(--u) * 20);
 }
 .amount {
-  font: 800 calc(var(--u) * 19) / 1 'Barlow Condensed', 'Arial Narrow', sans-serif;
-  font-variant-numeric: tabular-nums;
+  font: calc(var(--u) * 18) / 1 'Hustle Cash', 'Barlow Condensed', 'Arial Narrow', sans-serif;
   color: #fff;
+  -webkit-text-stroke: calc(var(--u) * 1.2) #000;
+  paint-order: stroke fill;
   text-shadow:
     calc(var(--u) * 0.6) calc(var(--u) * 0.6) 0 rgba(0, 0, 0, 0.8),
     0 0 calc(var(--u) * 3) rgba(0, 0, 0, 0.5);

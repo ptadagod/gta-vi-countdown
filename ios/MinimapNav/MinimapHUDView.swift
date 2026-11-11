@@ -139,8 +139,8 @@ final class MinimapHUDView: UIView, MLNMapViewDelegate {
         let turning = nav.speed <= 4 && !nav.simulating
         shownHeading = (shownHeading + Geo.angleDiff(shownHeading, nav.heading) * ease(turning ? 9 : 6) + 360)
             .truncatingRemainder(dividingBy: 360)
-        cameraHeading = (cameraHeading + Geo.angleDiff(cameraHeading, shownHeading) * ease(turning ? 6 : 2.2) + 360)
-            .truncatingRemainder(dividingBy: 360)
+        // The map turns with you, so you always face straight up.
+        cameraHeading = shownHeading
 
         // Zoom out with speed, and pull back briefly when a new route arrives.
         let fast = min(1, nav.speed / 28)
@@ -219,7 +219,13 @@ final class MinimapHUDView: UIView, MLNMapViewDelegate {
     /// Hard switch between red and blue every 0.6 s while wanted.
     private func updatePoliceTint(now: CFTimeInterval) {
         guard let layer = map.style?.layer(withIdentifier: "police-tint") as? MLNFillStyleLayer else { return }
-        let stars = MainActor.assumeIsolated { navigator?.inCar == true ? wanted?.stars ?? 0 : 0 }
+        let stars = MainActor.assumeIsolated { wanted?.stars ?? 0 }
+        // No pale haze over the police colours.
+        if haze.isHidden != (stars > 0) {
+            CATransaction.begin(); CATransaction.setDisableActions(true)
+            haze.isHidden = stars > 0
+            CATransaction.commit()
+        }
         let red: Bool? = stars > 0 ? Int(Date.now.timeIntervalSinceReferenceDate / 0.6) % 2 == 0 : nil
         guard red != tintRed else { return }
         tintRed = red
