@@ -17,12 +17,17 @@ struct ContentView: View {
     @State private var cameraMessage: String?
     @State private var cameraReady = false
     @State private var showSearch = false
+    @State private var showFullMap = false
     @State private var wanted = WantedLevel()
+    @State private var policeGlow = PoliceGlowModel()
+    @State private var special = SpecialAbility()
+    @State private var carLink = CarLink()
+    @State private var money = Money()
     private let hudInset: CGFloat = 24
 
     var body: some View {
         GeometryReader { geo in
-            let mapWidth = min(geo.size.width * 0.24, 250)
+            let mapWidth = min(geo.size.width * 0.19, 200)
 
             ZStack {
                 CameraPreview(camera: camera, ready: cameraReady)
@@ -37,22 +42,42 @@ struct ContentView: View {
                         }
                     }
 
+                SpecialTint(ability: special)
+                    .ignoresSafeArea()
+
+                PoliceGlowLayer(model: policeGlow, nav: nav, wanted: wanted)
+                    .ignoresSafeArea()
+
                 // Health bar, top left, lined up with the minimap below.
                 VStack {
                     HStack {
                         HUDHost(onView: { recorder.addHUD($0, key: "health") }) {
-                            HealthBar()
-                                .frame(width: mapWidth + 8)
-                                .padding(hudInset)
+                            VStack(alignment: .leading, spacing: 4) {
+                                HealthBar()
+                                SpecialBar(ability: special)
+                            }
+                            .frame(width: mapWidth + 8)
+                            .padding(hudInset)
                         }
-                        .frame(width: mapWidth + 8 + hudInset * 2, height: HealthBar.height + hudInset * 2)
+                        .frame(width: mapWidth + 8 + hudInset * 2,
+                               height: StatBar.badge * 2 + 4 + hudInset * 2)
                         .padding(-hudInset)
                         Spacer()
                         HUDHost(onView: { recorder.addHUD($0, key: "wanted") }) {
-                            WantedStars(wanted: wanted)
-                                .padding(hudInset)
+                            // In the car: wanted level. On foot: money.
+                            ZStack(alignment: .topTrailing) {
+                                if carLink.inCar {
+                                    WantedStars(wanted: wanted).transition(.opacity)
+                                } else {
+                                    MoneyHUD(money: money).transition(.opacity)
+                                }
+                            }
+                            .frame(width: WantedStars.width, height: max(WantedStars.height, MoneyHUD.height), alignment: .topTrailing)
+                            .animation(.easeOut(duration: 0.3), value: carLink.inCar)
+                            .padding(hudInset)
                         }
-                        .frame(width: WantedStars.width + hudInset * 2, height: WantedStars.size + hudInset * 2)
+                        .frame(width: WantedStars.width + hudInset * 2,
+                               height: max(WantedStars.height, MoneyHUD.height) + hudInset * 2)
                         .padding(-hudInset)
                     }
                     Spacer()
@@ -77,27 +102,23 @@ struct ContentView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 DirectionBox(nav: nav)
                                     .frame(width: mapWidth + 8)
-                                MinimapView(navigator: nav)
-                                    .frame(width: mapWidth, height: mapWidth * 2 / 3)
-                                    .overlay { PoliceFlash(wanted: wanted) }
-                                    .padding(4)
-                                    .background(.black.opacity(0.3), in: .rect(cornerRadius: 20, style: .continuous))
-                                    .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.14)))
-                                    .shadow(color: .black.opacity(0.45), radius: 14, y: 6)
+                                MinimapView(navigator: nav, wanted: wanted)
+                                    .frame(width: mapWidth + 8, height: (mapWidth + 8) * 2 / 3)
+                                    .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
                                     .contentShape(Rectangle())
-                                    .onTapGesture { showSearch = true }
+                                    .onTapGesture { showFullMap = true }
                                     .accessibilityLabel("Minimap")
-                                    .accessibilityHint("Opens waypoint search")
+                                    .accessibilityHint("Opens the full map")
                             }
                             .animation(.easeOut(duration: 0.25), value: nav.upcoming)
                             .animation(.easeOut(duration: 0.25), value: nav.rerouting)
                             .padding(hudInset)
                             .frame(width: mapWidth + 8 + hudInset * 2,
-                                   height: mapWidth * 2 / 3 + 8 + 8 + 62 + hudInset * 2,
+                                   height: mapWidth * 2 / 3 + 8 + 8 + 48 + hudInset * 2,
                                    alignment: .bottomLeading)
                         }
                         .frame(width: mapWidth + 8 + hudInset * 2,
-                               height: mapWidth * 2 / 3 + 8 + 8 + 62 + hudInset * 2)
+                               height: mapWidth * 2 / 3 + 8 + 8 + 48 + hudInset * 2)
                         .padding(-hudInset)
                         Spacer()
                         if !recorder.isRecording {
@@ -121,8 +142,18 @@ struct ContentView: View {
         }
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
+        .alert("Is \(carLink.suggestion?.name ?? "this") your car?",
+               isPresented: Binding(get: { carLink.suggestion != nil }, set: { if !$0 { carLink.answerSuggestion(false) } })) {
+            Button("Yes, it's my car") { carLink.answerSuggestion(true) }
+            Button("No", role: .cancel) { carLink.answerSuggestion(false) }
+        } message: {
+            Text("Whenever it connects, the app will switch to driving mode with the wanted level.")
+        }
+        .fullScreenCover(isPresented: $showFullMap) {
+            FullMapScreen(nav: nav, wanted: wanted, carLink: carLink, money: money)
+        }
         .sheet(isPresented: $showSearch) {
-            SearchSheet(nav: nav)
+            SearchSheet(nav: nav, wanted: wanted, carLink: carLink, money: money)
                 .presentationDetents([.medium, .large])
         }
         .onAppear {
@@ -130,6 +161,19 @@ struct ContentView: View {
             UIDevice.current.beginGeneratingDeviceOrientationNotifications()
             nav.start()
             recorder.camera = camera
+            carLink.onChange = { connected, name in
+                nav.inCar = connected
+                nav.show(connected ? "\(name) connected · driving mode" : "Car disconnected")
+            }
+            carLink.start()
+            recorder.glows = { [policeGlow, nav, wanted, special] size in
+                // Purple tint while the special ability runs: one huge, soft glow over the whole frame.
+                let tint = special.active
+                    ? [PoliceGlowModel.Glow(center: CGPoint(x: size.width / 2, y: size.height / 2),
+                                            radius: hypot(size.width, size.height) * 3,
+                                            r: 0.55, g: 0.2, b: 1, a: SpecialTint.alpha)] : []
+                return tint + policeGlow.glows(in: size, at: .now, nav: nav, wanted: wanted)
+            }
             camera.start(onReady: { cameraReady = true }, onUnavailable: { cameraMessage = $0 })
             Task {
                 try? await Task.sleep(for: .seconds(2.8))
@@ -140,6 +184,8 @@ struct ContentView: View {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 wanted.tick(position: nav.position, speed: nav.speed, dt: 1)
+                special.tick(dt: 1, speed: nav.speed)
+                money.track(nav.position)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
@@ -170,40 +216,26 @@ private struct HUDHost<Content: View>: UIViewControllerRepresentable {
 /// Health bar that tracks the phone's battery: green when full, amber below half,
 /// red and pulsing below 20%.
 private struct HealthBar: View {
-    static let height: CGFloat = 12
     @State private var level = Self.read()
     @State private var pulse = false
 
     var body: some View {
-        let low = level < 0.2
-        let color: Color = low ? Color(red: 0.86, green: 0.16, blue: 0.16)
-            : level < 0.5 ? Color(red: 0.93, green: 0.66, blue: 0.14)
-            : Color(red: 0.36, green: 0.73, blue: 0.29)
-        GeometryReader { g in
-            ZStack(alignment: .leading) {
-                Rectangle().fill(color.opacity(0.28))
-                Rectangle().fill(color)
-                    .frame(width: max(0, (g.size.width - 4) * level))
-                    .padding(2)
-                    .opacity(low && pulse ? 0.35 : 1)
+        // Pastel pink with a marker at the halfway point; flashes when the battery is low.
+        StatBar(icon: "heart.fill", color: Color(red: 0.93, green: 0.72, blue: 0.80),
+                level: level, marker: 0.5, showsTrack: true)
+            .opacity(level < 0.2 && pulse ? 0.45 : 1)
+            .animation(.easeOut(duration: 0.6), value: level)
+            .onAppear {
+                UIDevice.current.isBatteryMonitoringEnabled = true
+                level = Self.read()
+                withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) { pulse = true }
             }
-        }
-        .frame(height: Self.height)
-        .background(.black.opacity(0.55))
-        .overlay(Rectangle().stroke(.black.opacity(0.6), lineWidth: 1))
-        .shadow(color: .black.opacity(0.4), radius: 4, y: 2)
-        .animation(.easeOut(duration: 0.6), value: level)
-        .onAppear {
-            UIDevice.current.isBatteryMonitoringEnabled = true
-            level = Self.read()
-            withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) { pulse = true }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIDevice.batteryLevelDidChangeNotification)) { _ in
-            level = Self.read()
-        }
-        .accessibilityElement()
-        .accessibilityLabel("Health")
-        .accessibilityValue("\(Int(level * 100)) percent")
+            .onReceive(NotificationCenter.default.publisher(for: UIDevice.batteryLevelDidChangeNotification)) { _ in
+                level = Self.read()
+            }
+            .accessibilityElement()
+            .accessibilityLabel("Health")
+            .accessibilityValue("\(Int(level * 100)) percent")
     }
 
     private static func read() -> Double {
@@ -212,40 +244,111 @@ private struct HealthBar: View {
     }
 }
 
+/// One status row: a round dark badge with an icon, then a flat bar that's only drawn as far
+/// as it's filled, with a thin dark outline. An optional white tick marks a point along it.
+struct StatBar: View {
+    static let badge: CGFloat = 22
+    static let height: CGFloat = 11
+    let icon: String
+    let color: Color
+    let level: Double
+    var marker: Double? = nil
+    var glow: Double = 0
+    /// Draw the bar at full length, with the used-up part dimmed instead of missing.
+    var showsTrack = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ZStack {
+                Circle().fill(Color(white: 0.22).opacity(0.92))
+                Circle().stroke(.black.opacity(0.35), lineWidth: 1)
+                Image(systemName: icon)
+                    .font(.system(size: Self.badge * 0.5, weight: .bold))
+                    .foregroundStyle(color)
+            }
+            .frame(width: Self.badge, height: Self.badge)
+
+            GeometryReader { g in
+                let w = g.size.width * min(1, max(0, level))
+                ZStack(alignment: .leading) {
+                    if showsTrack {
+                        Rectangle().fill(color.opacity(0.3))
+                        Rectangle().fill(color).frame(width: w)
+                    } else {
+                        Rectangle()
+                            .fill(color)
+                            .frame(width: w)
+                            .shadow(color: color.opacity(glow), radius: 6)
+                    }
+                    if let marker, showsTrack || level > marker {
+                        Rectangle()
+                            .fill(.white)
+                            .frame(width: 2.5, height: Self.height + 3)
+                            .overlay(Rectangle().stroke(.black.opacity(0.8), lineWidth: 1))
+                            .offset(x: g.size.width * marker - 1.25)
+                    }
+                }
+                .frame(height: g.size.height)
+            }
+            .frame(height: Self.height)
+        }
+        .frame(height: Self.badge)
+        .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
+    }
+}
+
 /// Six wanted stars, top right. Lit stars fill from the right; they blink quickly when the
 /// level goes up and slowly while it's about to drop.
 private struct WantedStars: View {
-    static let size: CGFloat = 22
-    static let spacing: CGFloat = 3
+    static let size: CGFloat = 20
+    static let spacing: CGFloat = 4
+    static let badge: CGFloat = 18
     static var width: CGFloat { size * CGFloat(WantedLevel.maxStars) + spacing * CGFloat(WantedLevel.maxStars - 1) }
+    static var height: CGFloat { size + 5 + badge }
     let wanted: WantedLevel
 
     var body: some View {
         // Only shown while wanted.
-        ZStack {
-            if wanted.stars > 0 { stars }
+        ZStack(alignment: .topTrailing) {
+            if wanted.stars > 0 { content }
         }
-        .frame(width: Self.width, height: Self.size)
+        .frame(width: Self.width, height: Self.height, alignment: .topTrailing)
         .animation(.easeOut(duration: 0.3), value: wanted.stars > 0)
+        .animation(.easeOut(duration: 0.25), value: wanted.clues)
     }
 
-    private var stars: some View {
-        TimelineView(.periodic(from: .now, by: 0.1)) { t in
-            let phase = t.date.timeIntervalSinceReferenceDate
-            let blinkOff = wanted.justRaised ? Int(phase * 6) % 2 == 0
-                : wanted.evading ? Int(phase * 2) % 2 == 0 : false
-            HStack(spacing: Self.spacing) {
-                ForEach(0..<WantedLevel.maxStars, id: \.self) { i in
-                    let lit = i >= WantedLevel.maxStars - wanted.stars
-                    Image(systemName: "star.fill")
-                        .font(.system(size: Self.size - 2, weight: .black))
-                        .foregroundStyle(lit && !blinkOff ? Color.white : Color(white: 0.16))
-                        .overlay(Image(systemName: "star").font(.system(size: Self.size - 2, weight: .black))
-                            .foregroundStyle(.black))
-                        .frame(width: Self.size, height: Self.size)
+    private var content: some View {
+        VStack(alignment: .trailing, spacing: 5) {
+            TimelineView(.periodic(from: .now, by: 0.1)) { t in
+                let phase = t.date.timeIntervalSinceReferenceDate
+                let blinkOff = wanted.justRaised ? Int(phase * 6) % 2 == 0
+                    : wanted.evading ? Int(phase * 2) % 2 == 0 : false
+                HStack(spacing: Self.spacing) {
+                    ForEach(0..<WantedLevel.maxStars, id: \.self) { i in
+                        let lit = i >= WantedLevel.maxStars - wanted.stars && !blinkOff
+                        Image(systemName: "star.fill")
+                            .font(.system(size: Self.size - 1, weight: .regular))
+                            .foregroundStyle(lit ? Color.white : Color.black.opacity(0.28))
+                            .shadow(color: .black.opacity(lit ? 0.45 : 0), radius: 2, y: 1)
+                            .frame(width: Self.size, height: Self.size)
+                    }
                 }
             }
-            .shadow(color: .black.opacity(0.5), radius: 3, y: 1)
+            // What the police know: witnesses, clothing, face, vehicle.
+            HStack(spacing: 6) {
+                ForEach(wanted.clues, id: \.self) { clue in
+                    ZStack {
+                        Circle().fill(Color(red: 0.55, green: 0.1, blue: 0.11))
+                        Circle().stroke(.black.opacity(0.35), lineWidth: 1)
+                        Image(systemName: clue.rawValue)
+                            .font(.system(size: Self.badge * 0.5, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                    .frame(width: Self.badge, height: Self.badge)
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .shadow(color: .black.opacity(0.4), radius: 2, y: 1)
         }
         .transition(.opacity)
         .accessibilityElement()
@@ -254,39 +357,43 @@ private struct WantedStars: View {
     }
 }
 
-/// Red and blue police lights washing over the minimap while you're wanted; brighter and
-/// faster with more stars.
-private struct PoliceFlash: View {
-    let wanted: WantedLevel
+/// Pick which Bluetooth device is your car. Only devices connected right now can be listed,
+/// so this is done while connected to the car.
+private struct CarSection: View {
+    let carLink: CarLink
 
     var body: some View {
-        if wanted.stars > 0 { lights(stars: wanted.stars) }
-    }
-
-    private func lights(stars: Int) -> some View {
-        TimelineView(.animation) { t in
-            // Smooth crossfade red → blue → red, one full cycle every 2.4 s.
-            let phase = t.date.timeIntervalSinceReferenceDate * 2 * .pi / 2.4
-            let redWeight = (1 + sin(phase)) / 2
-            let strength = 0.24 + Double(stars) * 0.03
-            ZStack {
-                glow(Color(red: 1, green: 0.1, blue: 0.15), from: .leading, strength: strength)
-                    .opacity(redWeight)
-                glow(Color(red: 0.1, green: 0.35, blue: 1), from: .trailing, strength: strength)
-                    .opacity(1 - redWeight)
+        Section {
+            if let car = carLink.car {
+                HStack {
+                    Image(systemName: "car.fill").foregroundStyle(Color(MinimapHUDView.pink))
+                    Text(car.name)
+                    Spacer()
+                    Text(carLink.inCar ? "Connected" : "Not connected").foregroundStyle(.secondary)
+                }
+                Button("Forget car", role: .destructive) { carLink.forget() }
+            } else if carLink.available.isEmpty {
+                Text("Connect to your car's Bluetooth, then choose it here.")
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(carLink.available) { device in
+                    Button {
+                        carLink.choose(device)
+                    } label: {
+                        Label("Use \(device.name) as my car", systemImage: "car.fill")
+                    }
+                }
             }
+            Toggle("Pretend I'm in the car", isOn: Binding(get: { carLink.pretend }, set: { carLink.pretend = $0 }))
+        } header: {
+            Text("Car")
+        } footer: {
+            Text(carLink.car != nil
+                 ? "When it connects the app switches to driving mode: wanted level instead of money."
+                 : "The first time a Bluetooth device connects, the app asks if it's your car.")
         }
-        .allowsHitTesting(false)
-        .transition(.opacity)
-        .accessibilityHidden(true)
+        .onAppear { carLink.refresh() }
     }
-}
-
-private func glow(_ color: Color, from side: UnitPoint, strength: Double) -> some View {
-    RoundedRectangle(cornerRadius: 16, style: .continuous)
-        .fill(RadialGradient(colors: [color.opacity(strength * 0.5), color.opacity(strength * 1.6)],
-                             center: side, startRadius: 10, endRadius: 260))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(color.opacity(0.8), lineWidth: 2.5))
 }
 
 /// The next turn, shown in a box above the minimap.
@@ -307,28 +414,28 @@ private struct DirectionBox: View {
     private func row(symbol: String, distance: String?, text: String) -> some View {
         HStack(spacing: 10) {
             Image(systemName: symbol)
-                .font(.system(size: 22, weight: .bold))
+                .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(Color(MinimapHUDView.pink))
-                .frame(width: 30)
+                .frame(width: 24)
             VStack(alignment: .leading, spacing: 0) {
                 if let distance {
                     Text(distance)
-                        .font(.system(size: 20, weight: .heavy).width(.condensed).monospacedDigit())
+                        .font(.system(size: 16, weight: .heavy).width(.condensed).monospacedDigit())
                         .foregroundStyle(.white)
                 }
                 Text(text)
-                    .font(.system(size: 13, weight: .semibold).width(.condensed))
+                    .font(.system(size: 11, weight: .semibold).width(.condensed))
                     .foregroundStyle(.white.opacity(0.85))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(minHeight: 54)
-        .background(.black.opacity(0.55), in: .rect(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(.white.opacity(0.14)))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .frame(minHeight: 42)
+        .background(.black.opacity(0.55), in: .rect(cornerRadius: 11, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(.white.opacity(0.14)))
         .shadow(color: .black.opacity(0.35), radius: 8, y: 3)
         .accessibilityElement(children: .combine)
     }
@@ -375,6 +482,9 @@ private struct RecordButton: View {
 
 struct SearchSheet: View {
     @Bindable var nav: Navigator
+    let wanted: WantedLevel
+    let carLink: CarLink
+    let money: Money
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var results: [Place] = []
@@ -415,6 +525,23 @@ struct SearchSheet: View {
                         Button("Clear waypoint", role: .destructive) {
                             nav.clearDestination("Waypoint cleared")
                             dismiss()
+                        }
+                    }
+                }
+                if query.isEmpty {
+                    CarSection(carLink: carLink)
+                    MoneySection(money: money)
+                    Section("Wanted level") {
+                        Button(wanted.stars == 0 ? "Get wanted" : "Add a star (\(wanted.stars) of \(WantedLevel.maxStars))") {
+                            wanted.addStar()
+                            dismiss()
+                        }
+                        .disabled(wanted.stars >= WantedLevel.maxStars)
+                        if wanted.stars > 0 {
+                            Button("Lose the cops", role: .destructive) {
+                                wanted.clear()
+                                dismiss()
+                            }
                         }
                     }
                 }

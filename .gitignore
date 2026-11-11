@@ -32,3 +32,6 @@ dist-ssr
 # Xcode per-user state
 ios/**/xcuserdata/
 ios/**/*.xcuserstate
+
+# Wrangler local state
+.wrangler/

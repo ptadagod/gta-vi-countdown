@@ -1,0 +1,300 @@
+/* Transparent 1920×1080 overlay for an OBS browser source. Sizes are in --u units
+   (1 phone point), so ?scale= resizes the whole HUD. */
+:root {
+  --u: 2px;
+  --pink: #edb8cc;
+  --lavender: #ab94fa;
+  --clue: #8c1a1c;
+  --bank: #b87aff;
+  --cash: #8ce080;
+  --badge-bg: rgba(56, 56, 56, 0.92);
+  --inset: calc(var(--u) * 24);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+/* ?preview=1 puts a road-ish backdrop behind the HUD to check it in a normal browser. */
+body.preview {
+  background:
+    linear-gradient(180deg, #6d8fae 0%, #b9c7d3 45%, #5d5a55 46%, #3d3b38 100%);
+}
+
+.lights, .tint {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.tint {
+  background: rgb(140, 51, 255);
+  opacity: 0;
+  mix-blend-mode: screen;
+  transition: opacity 0.6s ease;
+}
+.tint.on { opacity: 0.2; }
+
+[hidden] { display: none !important; }
+
+/* ---------- Health and special, top left ---------- */
+
+.stats {
+  position: fixed;
+  top: var(--inset);
+  left: var(--inset);
+  width: calc(var(--u) * 208);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 4);
+  filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 1.5) rgba(0, 0, 0, 0.35));
+}
+
+.bar {
+  --c: var(--pink);
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 5);
+  height: calc(var(--u) * 22);
+}
+.bar.special { --c: var(--lavender); }
+
+.badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 22);
+  height: calc(var(--u) * 22);
+  border-radius: 50%;
+  background: var(--badge-bg);
+  box-shadow: inset 0 0 0 calc(var(--u) * 0.5) rgba(0, 0, 0, 0.35);
+  color: var(--c);
+}
+.badge svg { width: 52%; height: 52%; }
+
+.track {
+  position: relative;
+  flex: 1;
+  height: calc(var(--u) * 11);
+}
+.health .track { background: color-mix(in srgb, var(--c) 30%, transparent); }
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  background: var(--c);
+  transition: width 0.6s ease-out;
+}
+.special.full .fill, .special.active .fill {
+  animation: glow 1.4s ease-in-out infinite alternate;
+}
+@keyframes glow {
+  from { box-shadow: 0 0 0 transparent; }
+  to { box-shadow: 0 0 calc(var(--u) * 6) var(--c); }
+}
+
+.marker {
+  position: absolute;
+  top: calc(var(--u) * -1.5);
+  left: calc(50% - var(--u) * 1.25);
+  width: calc(var(--u) * 2.5);
+  height: calc(var(--u) * 14);
+  background: #fff;
+  box-shadow: 0 0 0 calc(var(--u) * 0.5) rgba(0, 0, 0, 0.8);
+}
+
+.health.low { animation: low 1s ease-in-out infinite alternate; }
+@keyframes low { to { opacity: 0.45; } }
+
+/* ---------- Wanted and money, top right ---------- */
+
+.right {
+  position: fixed;
+  top: var(--inset);
+  right: var(--inset);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(var(--u) * 8);
+}
+
+.wanted {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(var(--u) * 5);
+  transition: opacity 0.3s ease-out;
+}
+.wanted.off { opacity: 0; }
+
+.stars { display: flex; gap: calc(var(--u) * 4); }
+.star {
+  width: calc(var(--u) * 20);
+  height: calc(var(--u) * 20);
+  color: rgba(0, 0, 0, 0.28);
+}
+.star svg { width: 100%; height: 100%; display: block; }
+.star.lit {
+  color: #fff;
+  filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 1) rgba(0, 0, 0, 0.45));
+}
+
+.clues {
+  display: flex;
+  gap: calc(var(--u) * 6);
+  filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 1) rgba(0, 0, 0, 0.4));
+}
+.clue {
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 18);
+  height: calc(var(--u) * 18);
+  border-radius: 50%;
+  background: var(--clue);
+  box-shadow: inset 0 0 0 calc(var(--u) * 0.5) rgba(0, 0, 0, 0.35);
+  color: #fff;
+  animation: pop 0.25s ease-out;
+}
+.clue svg { width: 54%; height: 54%; }
+@keyframes pop { from { transform: scale(0.3); opacity: 0; } }
+
+.money {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(var(--u) * 4);
+}
+.line {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 6);
+  height: calc(var(--u) * 20);
+}
+.amount {
+  font: 800 calc(var(--u) * 19) / 1 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow:
+    calc(var(--u) * 0.6) calc(var(--u) * 0.6) 0 rgba(0, 0, 0, 0.8),
+    0 0 calc(var(--u) * 3) rgba(0, 0, 0, 0.5);
+}
+.ring {
+  width: calc(var(--u) * 20);
+  height: calc(var(--u) * 20);
+  filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 1) rgba(0, 0, 0, 0.4));
+}
+.ring svg { width: 100%; height: 100%; display: block; }
+
+/* ---------- Minimap and turn box, bottom left ---------- */
+
+.corner {
+  position: fixed;
+  left: var(--inset);
+  bottom: var(--inset);
+  width: calc(var(--u) * 208);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 8);
+}
+
+.minimap {
+  position: relative;
+  height: calc(var(--u) * 208 * 2 / 3);
+  border-radius: calc(var(--u) * 16);
+  overflow: hidden;
+  background: #e4ddcf;
+  isolation: isolate;
+  box-shadow: 0 calc(var(--u) * 4) calc(var(--u) * 10) rgba(0, 0, 0, 0.35);
+}
+.minimap .map { position: absolute; inset: 0; }
+.minimap .haze {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(232, 226, 213, 0.8) 0%, rgba(232, 226, 213, 0.25) 16%, transparent 36%);
+}
+.minimap .distance {
+  position: absolute;
+  top: calc(var(--u) * 6);
+  left: calc(var(--u) * 10);
+  font: 800 calc(var(--u) * 15) / 1 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  color: #fff;
+  text-shadow: 0 calc(var(--u) * 1) calc(var(--u) * 2) rgba(0, 0, 0, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+.minimap .player, .minimap .waypoint, .minimap .north {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+.minimap .player svg {
+  display: block;
+  width: calc(var(--u) * 20);
+  height: calc(var(--u) * 20);
+  margin: calc(var(--u) * -10) 0 0 calc(var(--u) * -10);
+  filter: drop-shadow(0 calc(var(--u) * 1) calc(var(--u) * 1.5) rgba(0, 0, 0, 0.35));
+}
+.minimap .waypoint::before {
+  content: '';
+  position: absolute;
+  width: calc(var(--u) * 12);
+  height: calc(var(--u) * 12);
+  margin: calc(var(--u) * -6) 0 0 calc(var(--u) * -6);
+  border-radius: 50%;
+  background: #fc80ae;
+  box-shadow: 0 0 0 calc(var(--u) * 1.5) #fff, 0 calc(var(--u) * 1) calc(var(--u) * 3) rgba(0, 0, 0, 0.35);
+}
+.minimap .north {
+  display: grid;
+  place-items: center;
+  width: calc(var(--u) * 16);
+  height: calc(var(--u) * 16);
+  margin: calc(var(--u) * -8) 0 0 calc(var(--u) * -8);
+  border-radius: 50%;
+  background: rgba(20, 18, 16, 0.7);
+  color: #fff;
+  font: 800 calc(var(--u) * 10) / 1 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  box-shadow: 0 0 0 calc(var(--u) * 0.5) rgba(255, 255, 255, 0.5);
+}
+.minimap .maplibregl-ctrl-bottom-right { right: calc(var(--u) * 3); bottom: calc(var(--u) * 2); }
+.minimap .maplibregl-ctrl-attrib.maplibregl-compact { background: rgba(255, 255, 255, 0.4); opacity: 0.5; }
+
+.directions {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 10);
+  min-height: calc(var(--u) * 42);
+  padding: calc(var(--u) * 6) calc(var(--u) * 10);
+  border-radius: calc(var(--u) * 11);
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 calc(var(--u) * 0.5) rgba(255, 255, 255, 0.14), 0 calc(var(--u) * 3) calc(var(--u) * 8) rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translateY(calc(var(--u) * 6));
+  transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+}
+.directions.show { opacity: 1; transform: none; }
+.directions .turn { flex: none; width: calc(var(--u) * 24); height: calc(var(--u) * 24); color: #fc80ae; }
+.directions .turn svg { width: 100%; height: 100%; display: block; }
+.directions .what { display: flex; flex-direction: column; min-width: 0; }
+.directions b {
+  font: 800 calc(var(--u) * 17) / 1.05 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.directions .what span {
+  font: 600 calc(var(--u) * 12) / 1.15 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

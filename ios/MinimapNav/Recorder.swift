@@ -1,5 +1,6 @@
 import AVFoundation
 import CoreImage
+import CoreImage.CIFilterBuiltins
 import Observation
 import os
 import Photos
@@ -21,6 +22,10 @@ final class Recorder {
     /// The camera to record, and the on-screen HUD to draw over it.
     @ObservationIgnored var camera: CameraController?
     @ObservationIgnored private var huds: [String: WeakView] = [:]
+    /// Police glows to draw into the recording, for a screen of the given size.
+    @ObservationIgnored var glows: ((CGSize) -> [PoliceGlowModel.Glow])? {
+        didSet { overlay.glows = glows }
+    }
 
     /// Registers an on-screen HUD piece to draw over the recording.
     func addHUD(_ view: UIView, key: String) { huds[key] = WeakView(view: view) }
@@ -34,54 +39,116 @@ final class Recorder {
         isRecording ? stop(report: report) : start(report: report)
     }
 
+    @ObservationIgnored private var size = CGSize(width: 1920, height: 884)
+    @ObservationIgnored private var micAllowed = false
+    @ObservationIgnored private var watchdog: Task<Void, Never>?
+    @ObservationIgnored private var report: (String) -> Void = { _ in }
+
     private func start(report: @escaping (String) -> Void) {
         let views = huds.values.compactMap(\.view)
         guard let camera, let window = views.first?.window else { return report("Recording unavailable") }
         guard !starting else { return }
         starting = true
+        self.report = report
         Task {
             defer { starting = false }
             Self.mixWithOtherAudio()
-            let micAllowed = await AVCaptureDevice.requestAccess(for: .audio)
+            micAllowed = await AVCaptureDevice.requestAccess(for: .audio)
 
             // Same shape as the screen, 1920 pixels wide.
-            let width = 1920.0
-            let scale = width / window.bounds.width
-            let height = (window.bounds.height * scale / 2).rounded() * 2
-            let url = FileManager.default.temporaryDirectory
-                .appendingPathComponent("drive-\(Int(Date().timeIntervalSince1970)).mp4")
-            let clip = ClipWriter(url: url, size: CGSize(width: width, height: height), withAudio: micAllowed)
-            self.clip = clip
+            let scale = 1920 / window.bounds.width
+            size = CGSize(width: 1920, height: (window.bounds.height * scale / 2).rounded() * 2)
+            DriveLog.write("record start \(Int(size.width))x\(Int(size.height)) mic=\(micAllowed) thermal=\(ProcessInfo.processInfo.thermalState.rawValue)")
 
             overlay.start(views: views, scale: scale)
-            if micAllowed { mic.start { clip.appendAudio($0) } }
+            if micAllowed { mic.start { [weak self] buffer in self?.currentClip.withLock { $0 }?.appendAudio(buffer) } }
             let latest = overlay.latest
-            camera.onFrame = { clip.appendVideo($0, overlay: latest.withLock { $0 }) }
+            let current = currentClip
+            camera.onFrame = { buffer in current.withLock { $0 }?.appendVideo(buffer, overlay: latest.withLock { $0 }) }
+            beginClip()
 
             isRecording = true
             startedAt = .now
+            startWatchdog()
+        }
+    }
+
+    /// The clip frames are going into; swapped when a clip has to be cut short.
+    @ObservationIgnored private let currentClip = OSAllocatedUnfairLock<ClipWriter?>(initialState: nil)
+
+    private func beginClip() {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("drive-\(Int(Date().timeIntervalSince1970)).mov")
+        let clip = ClipWriter(url: url, size: size, withAudio: micAllowed)
+        clip.onFailure = { [weak self] error in
+            Task { @MainActor in self?.clipFailed(clip, error) }
+        }
+        self.clip = clip
+        currentClip.withLock { $0 = clip }
+    }
+
+    /// If writing breaks mid-drive, keep what was recorded and carry on in a new clip
+    /// instead of silently stopping.
+    private func clipFailed(_ failed: ClipWriter, _ error: String) {
+        guard isRecording, clip === failed else { return }
+        DriveLog.write("clip failed: \(error) — saving part and continuing")
+        beginClip()
+        Task { await save(failed) }
+    }
+
+    private func startWatchdog() {
+        watchdog?.cancel()
+        watchdog = Task { [weak self] in
+            var lastThermal = ProcessInfo.processInfo.thermalState
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                guard let self, self.isRecording, let clip = self.clip else { continue }
+                let thermal = ProcessInfo.processInfo.thermalState
+                if thermal != lastThermal {
+                    DriveLog.write("thermal state \(thermal.rawValue)")
+                    lastThermal = thermal
+                }
+                let stats = clip.stats()
+                if let last = stats.lastFrame, Date.now.timeIntervalSince(last) > 5 {
+                    DriveLog.write("no camera frames for \(Int(Date.now.timeIntervalSince(last))) s (written \(stats.frames), dropped \(stats.dropped))")
+                }
+            }
         }
     }
 
     private func stop(report: @escaping (String) -> Void) {
+        let duration = startedAt.map { Int(Date.now.timeIntervalSince($0)) } ?? 0
         isRecording = false
         startedAt = nil
         isSaving = true
+        watchdog?.cancel()
         camera?.onFrame = nil
         overlay.stop()
         mic.stop()
         let clip = self.clip
         self.clip = nil
+        currentClip.withLock { $0 = nil }
         Task {
-            let url = await clip?.finish()
-            Self.releaseAudio()
-            if let url {
-                report(await Self.saveToPhotos(url) ? "Saved to Photos" : "Couldn't save · allow Photos access")
+            if let clip {
+                let stats = clip.stats()
+                DriveLog.write("record stop after \(duration) s, frames \(stats.frames), dropped \(stats.dropped)")
+                await save(clip)
             } else {
                 report("Recording failed")
             }
+            Self.releaseAudio()
             isSaving = false
         }
+    }
+
+    private func save(_ clip: ClipWriter) async {
+        guard let url = await clip.finish() else {
+            DriveLog.write("finish produced no file")
+            return report("Recording failed")
+        }
+        let saved = await Self.saveToPhotos(url)
+        DriveLog.write(saved ? "saved to Photos" : "Photos save failed")
+        report(saved ? "Saved to Photos" : "Couldn't save · allow Photos access")
     }
 
     /// Record from the microphone without interrupting music or podcasts in other apps.
@@ -114,9 +181,33 @@ final class Recorder {
 
 struct WeakView { weak var view: UIView? }
 
+/// Short diary of recording events in the app's Documents folder (recording-log.txt),
+/// so a recording that stops early can be diagnosed afterwards.
+enum DriveLog {
+    private static let queue = DispatchQueue(label: "drive.log")
+    private static let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("recording-log.txt")
+
+    static func write(_ line: String) {
+        let stamp = Date.now.formatted(.iso8601.time(includingFractionalSeconds: false))
+        queue.async {
+            let data = Data("\(Date.now.formatted(date: .numeric, time: .omitted)) \(stamp) \(line)\n".utf8)
+            if let handle = try? FileHandle(forWritingTo: url) {
+                handle.seekToEndOfFile()
+                handle.write(data)
+                try? handle.close()
+            } else {
+                try? data.write(to: url)
+            }
+        }
+    }
+}
+
 /// Pictures of the HUD pieces and where each goes in the video frame (pixels, top-left origin).
 struct Overlay: @unchecked Sendable {
     var parts: [(image: CGImage, rect: CGRect)] = []
+    /// Police glows in video pixels (top-left origin).
+    var glows: [PoliceGlowModel.Glow] = []
 }
 
 /// Snapshots the HUD 30 times a second while recording.
@@ -126,6 +217,7 @@ final class OverlayCapture {
     private var link: CADisplayLink?
     private var views: [WeakView] = []
     private var scale: CGFloat = 2
+    var glows: ((CGSize) -> [PoliceGlowModel.Glow])?
 
     func start(views: [UIView], scale: CGFloat) {
         self.views = views.map { WeakView(view: $0) }
@@ -148,6 +240,12 @@ final class OverlayCapture {
         format.scale = scale
         format.opaque = false
         var overlay = Overlay()
+        if let glows, let window = views.compactMap(\.view).first?.window {
+            let k = scale
+            overlay.glows = glows(window.bounds.size).map {
+                .init(center: CGPoint(x: $0.center.x * k, y: $0.center.y * k), radius: $0.radius * k, r: $0.r, g: $0.g, b: $0.b, a: $0.a)
+            }
+        }
         for case let view? in views.map(\.view) {
             guard let window = view.window, view.bounds.width > 0 else { continue }
             let image = UIGraphicsImageRenderer(bounds: view.bounds, format: format).image { _ in
@@ -223,6 +321,17 @@ final class ClipWriter: @unchecked Sendable {
     private var audio: AVAssetWriterInput?
     private var startTime: CMTime?
     private var done = false
+    private var failed = false
+    /// Called once if the file can no longer be written to.
+    var onFailure: ((String) -> Void)?
+    // Frames waiting to be drawn; extra frames are skipped so a busy phone drops frames
+    // instead of building an ever-growing backlog.
+    private let pending = OSAllocatedUnfairLock(initialState: 0)
+    private let counters = OSAllocatedUnfairLock(initialState: (frames: 0, dropped: 0, last: Date?.none))
+
+    func stats() -> (frames: Int, dropped: Int, lastFrame: Date?) {
+        counters.withLock { ($0.frames, $0.dropped, $0.last) }
+    }
 
     init(url: URL, size: CGSize, withAudio: Bool) {
         self.url = url
@@ -231,8 +340,18 @@ final class ClipWriter: @unchecked Sendable {
     }
 
     func appendVideo(_ buffer: CMSampleBuffer, overlay: Overlay?) {
+        let busy = pending.withLock { n -> Bool in
+            if n >= 2 { return true }
+            n += 1
+            return false
+        }
+        if busy {
+            counters.withLock { $0.dropped += 1 }
+            return
+        }
         queue.async { [self] in
-            guard !done else { return }
+            defer { pending.withLock { $0 -= 1 } }
+            guard !done, !failed else { return }
             let time = CMSampleBufferGetPresentationTimeStamp(buffer)
             if startTime == nil, !begin(at: time) { return }
             guard let video, video.isReadyForMoreMediaData, let adaptor, let pool = adaptor.pixelBufferPool,
@@ -242,14 +361,24 @@ final class ClipWriter: @unchecked Sendable {
             guard let out else { return }
             context.render(compose(camera, overlay), to: out, bounds: CGRect(origin: .zero, size: size), colorSpace: colorSpace)
             adaptor.append(out, withPresentationTime: time)
+            counters.withLock { $0.frames += 1; $0.last = .now }
+            checkFailure()
         }
+    }
+
+    private func checkFailure() {
+        guard !failed, let writer, writer.status == .failed else { return }
+        failed = true
+        let message = writer.error.map { "\(($0 as NSError).domain) \(($0 as NSError).code) \($0.localizedDescription)" } ?? "unknown"
+        onFailure?(message)
     }
 
     func appendAudio(_ buffer: CMSampleBuffer) {
         queue.async { [self] in
-            guard !done, let start = startTime, let audio, audio.isReadyForMoreMediaData,
+            guard !done, !failed, let start = startTime, let audio, audio.isReadyForMoreMediaData,
                   CMSampleBufferGetPresentationTimeStamp(buffer) >= start else { return }
             audio.append(buffer)
+            checkFailure()
         }
     }
 
@@ -258,7 +387,12 @@ final class ClipWriter: @unchecked Sendable {
         await withCheckedContinuation { (cont: CheckedContinuation<URL?, Never>) in
             queue.async { [self] in
                 done = true
-                guard let writer, writer.status == .writing else { return cont.resume(returning: nil) }
+                guard let writer else { return cont.resume(returning: nil) }
+                guard writer.status == .writing else {
+                    // A failed writer still leaves the movie up to its last fragment on disk.
+                    let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int) ?? 0
+                    return cont.resume(returning: size > 0 ? url : nil)
+                }
                 video?.markAsFinished()
                 audio?.markAsFinished()
                 writer.finishWriting { [url] in
@@ -277,6 +411,16 @@ final class ClipWriter: @unchecked Sendable {
         let f = image.extent
         image = image.transformed(by: CGAffineTransform(translationX: (size.width - f.width) / 2 - f.minX,
                                                         y: (size.height - f.height) / 2 - f.minY))
+        let frame = CGRect(origin: .zero, size: size)
+        for g in overlay?.glows ?? [] where g.a > 0.01 {
+            let f = CIFilter.radialGradient()
+            f.center = CGPoint(x: g.center.x, y: size.height - g.center.y)
+            f.radius0 = 0
+            f.radius1 = Float(g.radius)
+            f.color0 = CIColor(red: g.r * g.a, green: g.g * g.a, blue: g.b * g.a, alpha: g.a)
+            f.color1 = CIColor(red: 0, green: 0, blue: 0, alpha: 0)
+            if let glow = f.outputImage?.cropped(to: frame) { image = glow.composited(over: image) }
+        }
         for part in overlay?.parts ?? [] {
             let hud = CIImage(cgImage: part.image)
             let sx = part.rect.width / hud.extent.width, sy = part.rect.height / hud.extent.height
@@ -289,7 +433,9 @@ final class ClipWriter: @unchecked Sendable {
     }
 
     private func begin(at time: CMTime) -> Bool {
-        guard let writer = try? AVAssetWriter(outputURL: url, fileType: .mp4) else { return false }
+        guard let writer = try? AVAssetWriter(outputURL: url, fileType: .mov) else { return false }
+        // Write in 5 s fragments so a clip that's cut short is still playable.
+        writer.movieFragmentInterval = CMTime(seconds: 5, preferredTimescale: 600)
         let video = AVAssetWriterInput(mediaType: .video, outputSettings: [
             AVVideoCodecKey: AVVideoCodecType.h264,
             AVVideoWidthKey: Int(size.width),

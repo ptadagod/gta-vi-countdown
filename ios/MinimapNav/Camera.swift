@@ -15,6 +15,8 @@ final class CameraController: NSObject, AVCaptureVideoDataOutputSampleBufferDele
     private var rotation: AVCaptureDevice.RotationCoordinator?
     private var rotationObservation: NSKeyValueObservation?
     private var configured = false
+    private var pressureObservation: NSKeyValueObservation?
+    private var observers: [NSObjectProtocol] = []
     // A plain lock and concrete closure type: storing the closure in a generic lock re-wrapped
     // it on every frame until the stack overflowed after a few minutes.
     private let frameLock = NSLock()
@@ -70,6 +72,8 @@ final class CameraController: NSObject, AVCaptureVideoDataOutputSampleBufferDele
         guard session.canAddOutput(videoOutput) else { return }
         session.addOutput(videoOutput)
 
+        watchHealth(cam)
+
         // Keep recorded frames level with the horizon whichever way the phone is turned.
         let coordinator = AVCaptureDevice.RotationCoordinator(device: cam, previewLayer: nil)
         rotation = coordinator
@@ -78,6 +82,52 @@ final class CameraController: NSObject, AVCaptureVideoDataOutputSampleBufferDele
             let angle = c.videoRotationAngleForHorizonLevelCapture
             self?.queue.async { self?.applyCaptureRotation(angle) }
         }
+    }
+
+    /// Keep the camera alive on a long drive: restart after errors or interruptions, and when the
+    /// phone heats up drop to a lower frame rate rather than letting iOS shut the camera off.
+    private func watchHealth(_ cam: AVCaptureDevice) {
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(forName: AVCaptureSession.runtimeErrorNotification, object: session, queue: nil) { [weak self] note in
+            let error = note.userInfo?[AVCaptureSessionErrorKey] as? NSError
+            DriveLog.write("camera runtime error \(error?.code ?? 0) \(error?.localizedDescription ?? "")")
+            self?.queue.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self, !self.session.isRunning else { return }
+                self.session.startRunning()
+                DriveLog.write("camera restarted, running=\(self.session.isRunning)")
+            }
+        })
+        observers.append(center.addObserver(forName: AVCaptureSession.wasInterruptedNotification, object: session, queue: nil) { note in
+            let reason = (note.userInfo?[AVCaptureSessionInterruptionReasonKey] as? NSNumber)?.intValue ?? -1
+            DriveLog.write("camera interrupted, reason \(reason)")
+        })
+        observers.append(center.addObserver(forName: AVCaptureSession.interruptionEndedNotification, object: session, queue: nil) { [weak self] _ in
+            DriveLog.write("camera interruption ended")
+            self?.queue.async { [weak self] in
+                guard let self, !self.session.isRunning else { return }
+                self.session.startRunning()
+            }
+        })
+        pressureObservation = cam.observe(\.systemPressureState, options: [.new]) { [weak self] device, _ in
+            let level = device.systemPressureState.level
+            DriveLog.write("camera system pressure \(level.rawValue)")
+            self?.queue.async { [weak self] in self?.setFrameRate(for: level, on: device) }
+        }
+    }
+
+    private func setFrameRate(for level: AVCaptureDevice.SystemPressureState.Level, on device: AVCaptureDevice) {
+        let fps: Int32 = switch level {
+        case .serious: 24
+        case .critical, .shutdown: 15
+        default: 30
+        }
+        guard (try? device.lockForConfiguration()) != nil else { return }
+        let duration = CMTime(value: 1, timescale: fps)
+        if device.activeFormat.videoSupportedFrameRateRanges.contains(where: { $0.minFrameRate <= Double(fps) }) {
+            device.activeVideoMinFrameDuration = duration
+            device.activeVideoMaxFrameDuration = duration
+        }
+        device.unlockForConfiguration()
     }
 
     private func applyCaptureRotation(_ angle: CGFloat) {

@@ -6,10 +6,12 @@ import UIKit
 /// heading-up with a tilted camera, plus the HUD drawn on top (distance, player
 /// arrow, waypoint pinned to the edge when off-screen, and the north marker).
 final class MinimapHUDView: UIView, MLNMapViewDelegate {
-    static let pink = UIColor(red: 0.95, green: 0.21, blue: 0.56, alpha: 1)
+    static let pink = UIColor(red: 0.988, green: 0.502, blue: 0.682, alpha: 1) // #fc80ae
     private static let pitch: CGFloat = 45
 
     weak var navigator: Navigator?
+    weak var wanted: WantedLevel?
+    private var tintRed: Bool?
 
     private let map: MLNMapView
     private let haze = CAGradientLayer()
@@ -39,8 +41,6 @@ final class MinimapHUDView: UIView, MLNMapViewDelegate {
         backgroundColor = .clear
         layer.cornerRadius = 16
         layer.cornerCurve = .continuous
-        layer.borderWidth = 1.5
-        layer.borderColor = UIColor(white: 1, alpha: 0.35).cgColor
         clipsToBounds = true
 
         map.delegate = self
@@ -115,6 +115,7 @@ final class MinimapHUDView: UIView, MLNMapViewDelegate {
     }
 
     func mapView(_ mapView: MLNMapView, didFinishLoading style: MLNStyle) {
+        addPoliceTint(style)
         styleReady = true
         drawnRevision = -1
         let cam = mapView.camera
@@ -155,6 +156,7 @@ final class MinimapHUDView: UIView, MLNMapViewDelegate {
             drawRoutes(nav)
         }
         layoutHUD(nav, dt: dt)
+        updatePoliceTint(now: now)
     }
 
     private func drawRoutes(_ nav: Navigator) {
@@ -192,6 +194,42 @@ final class MinimapHUDView: UIView, MLNMapViewDelegate {
                 parameters: nil,
                 stops: NSExpression(forConstantValue: [0: color.withAlphaComponent(0), fade: color]))
         }
+    }
+
+    /// The wanted flash lives inside the map, as a world-sized fill just under the route
+    /// layers, so the pink route stays on top of the red/blue.
+    private func addPoliceTint(_ style: MLNStyle) {
+        guard style.layer(withIdentifier: "police-tint") == nil else { return }
+        var world = [Coord(latitude: -85, longitude: -180), Coord(latitude: -85, longitude: 180),
+                     Coord(latitude: 85, longitude: 180), Coord(latitude: 85, longitude: -180),
+                     Coord(latitude: -85, longitude: -180)]
+        let source = MLNShapeSource(identifier: "police-tint",
+                                    shape: MLNPolygonFeature(coordinates: &world, count: UInt(world.count)))
+        style.addSource(source)
+        let layer = MLNFillStyleLayer(identifier: "police-tint", source: source)
+        layer.fillOpacity = NSExpression(forConstantValue: 0)
+        layer.fillAntialiased = NSExpression(forConstantValue: false)
+        if let below = ["alts", "route-glow", "route-casing", "route"].lazy.compactMap({ style.layer(withIdentifier: $0) }).first {
+            style.insertLayer(layer, below: below)
+        } else {
+            style.addLayer(layer)
+        }
+    }
+
+    /// Hard switch between red and blue every 0.6 s while wanted.
+    private func updatePoliceTint(now: CFTimeInterval) {
+        guard let layer = map.style?.layer(withIdentifier: "police-tint") as? MLNFillStyleLayer else { return }
+        let stars = MainActor.assumeIsolated { navigator?.inCar == true ? wanted?.stars ?? 0 : 0 }
+        let red: Bool? = stars > 0 ? Int(Date.now.timeIntervalSinceReferenceDate / 0.6) % 2 == 0 : nil
+        guard red != tintRed else { return }
+        tintRed = red
+        guard let red else {
+            layer.fillOpacity = NSExpression(forConstantValue: 0)
+            return
+        }
+        let color = red ? UIColor(red: 1, green: 0.12, blue: 0.18, alpha: 1) : UIColor(red: 0.12, green: 0.38, blue: 1, alpha: 1)
+        layer.fillColor = NSExpression(forConstantValue: color)
+        layer.fillOpacity = NSExpression(forConstantValue: min(0.75, 0.5 + Double(stars) * 0.03))
     }
 
     private func layoutHUD(_ nav: Navigator, dt: Double) {
@@ -361,14 +399,17 @@ private final class WaypointMarker: UIView {
 
 struct MinimapView: UIViewRepresentable {
     let navigator: Navigator
+    let wanted: WantedLevel
 
     func makeUIView(context: Context) -> MinimapHUDView {
         let v = MinimapHUDView(frame: .zero)
         v.navigator = navigator
+        v.wanted = wanted
         return v
     }
 
     func updateUIView(_ v: MinimapHUDView, context: Context) {
         v.navigator = navigator
+        v.wanted = wanted
     }
 }

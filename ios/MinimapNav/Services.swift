@@ -151,6 +151,20 @@ enum Services {
                               .init(name: "lon", value: String(format: "%.4f", near.longitude))]
         }
         let (data, _) = try await URLSession.shared.data(from: c.url!)
+        return try places(from: data)
+    }
+
+    /// The nearest named place or address to a point (for a dropped pin).
+    static func reverse(_ p: Coord) async throws -> Place? {
+        var c = URLComponents(string: "https://photon.komoot.io/reverse")!
+        c.queryItems = [.init(name: "lat", value: String(format: "%.6f", p.latitude)),
+                        .init(name: "lon", value: String(format: "%.6f", p.longitude)),
+                        .init(name: "lang", value: "en"), .init(name: "limit", value: "1")]
+        let (data, _) = try await URLSession.shared.data(for: URLRequest(url: c.url!, timeoutInterval: 3))
+        return try places(from: data).first
+    }
+
+    private static func places(from data: Data) throws -> [Place] {
         let decoded = try JSONDecoder().decode(Photon.self, from: data)
         var seen = Set<String>()
         return decoded.features.compactMap { f in

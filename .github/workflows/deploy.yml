@@ -26,6 +26,9 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+        env:
+          # wss:// address of the Cloudflare relay for the OBS overlay (repo Settings → Variables).
+          VITE_RELAY_URL: ${{ vars.HUD_RELAY_URL }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

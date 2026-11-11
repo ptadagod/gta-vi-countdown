@@ -9,6 +9,25 @@ final class WantedLevel {
     static let maxStars = 6
 
     private(set) var stars = 0
+
+    /// What the police know about you, shown as red badges under the stars.
+    enum Clue: String, CaseIterable {
+        case witnesses = "person.2.fill"
+        case clothing = "hanger"
+        case face = "person.fill"
+        case vehicle = "car.fill"
+    }
+    private(set) var clues: [Clue] = []
+
+    private func learn(_ clue: Clue) {
+        if !clues.contains(clue) { clues.append(clue) }
+        clues.sort { Clue.allCases.firstIndex(of: $0)! < Clue.allCases.firstIndex(of: $1)! }
+    }
+    /// A random reported detail (who saw you, what you wore, your face).
+    private func learnSomething() {
+        let unknown = [Clue.witnesses, .clothing, .face].filter { !clues.contains($0) }
+        if let c = unknown.randomElement() { learn(c) }
+    }
     /// Stars blink right after going up.
     private(set) var justRaised = false
     /// Stars blink slowly while they're about to drop.
@@ -21,6 +40,9 @@ final class WantedLevel {
     @ObservationIgnored private var nextRandom = Date.now.addingTimeInterval(.random(in: 90...240))
     @ObservationIgnored private var raisedAt: Date?
     @ObservationIgnored private let limits = SpeedLimits()
+    @ObservationIgnored private let units = PoliceUnits()
+    /// Where the pretend police cars are (one per star).
+    @ObservationIgnored private(set) var police: [Coord] = []
 
     /// Call about once a second.
     func tick(position: Coord?, speed: Double, dt: TimeInterval) {
@@ -37,8 +59,8 @@ final class WantedLevel {
             let over = kmh - limit
             let floor = over > 50 ? 3 : over > 30 ? 2 : 1
             if speedingFor >= 3 {
-                if stars < floor { raise(to: floor) }
-                else if speedingFor >= 18 { raise(to: stars + 1); speedingFor = 3 }
+                if stars < floor { raise(to: floor); learn(.vehicle) }
+                else if speedingFor >= 18 { raise(to: stars + 1); speedingFor = 3; learn(.vehicle) }
             }
         } else {
             speedingFor = 0
@@ -49,6 +71,8 @@ final class WantedLevel {
             nextRandom = .now.addingTimeInterval(.random(in: 90...300))
             if speed > 4, Double.random(in: 0...1) < 0.4 {
                 raise(to: stars + 1)
+                learn(.witnesses)
+                learnSomething()
                 offence = true
             }
         }
@@ -63,15 +87,32 @@ final class WantedLevel {
             evading = cleanFor >= 30
             if cleanFor >= 45 {
                 stars -= 1
+                if stars == 0 { clues = [] }
                 cleanFor = 30 // keep flashing toward the next drop
                 if stars == 0 { evading = false }
             }
         }
 
         if let raisedAt, Date.now.timeIntervalSince(raisedAt) > 2.5 { justRaised = false }
+        if let position { police = units.update(dt: dt, player: position, playerSpeed: speed, count: stars) }
     }
 
     /// Getting wanted always starts you at 2 stars.
+    /// Test buttons: add a star, or clear the wanted level.
+    func addStar() {
+        raise(to: stars + 1)
+        if clues.count < Clue.allCases.count {
+            learn(Clue.allCases.filter { !clues.contains($0) }.randomElement()!)
+        }
+    }
+    func clear() {
+        stars = 0
+        clues = []
+        justRaised = false
+        evading = false
+        cleanFor = 0
+    }
+
     private func raise(to n: Int) {
         let n = min(max(n, 2), Self.maxStars)
         guard n > stars else { return }

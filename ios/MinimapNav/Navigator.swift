@@ -57,7 +57,10 @@ final class Navigator: NSObject {
     @ObservationIgnored private var screenUp = simd_double3(1, 0, 0)
 
     /// Above this speed (m/s, ~14 km/h) GPS course steers the map; below it, where the camera points.
-    private static let courseSpeed = 4.0
+    /// In the car (its Bluetooth is connected) the phone is mounted facing forward, so trust
+    /// the GPS direction of travel from walking pace up rather than only above 4 m/s.
+    var inCar = false
+    private var courseSpeed: Double { inCar ? 2 : 4 }
     @ObservationIgnored private var offSince: Date?
     @ObservationIgnored private var lastRouteAt = Date.distantPast
     @ObservationIgnored private var routeTask: Task<Void, Never>?
@@ -246,9 +249,9 @@ final class Navigator: NSObject {
         defer { lastFix = fix }
         guard !simulating else { return }
         speed = max(0, fix.speed)
-        if fix.course >= 0, speed > Self.courseSpeed {
+        if fix.course >= 0, speed > courseSpeed {
             heading = fix.course
-        } else if let prev = lastFix, fix.distance(from: prev) > 8, speed > Self.courseSpeed {
+        } else if let prev = lastFix, fix.distance(from: prev) > 8, speed > courseSpeed {
             heading = Geo.bearing(prev.coordinate, fix.coordinate)
         } else if let compass {
             heading = compass
@@ -267,7 +270,7 @@ final class Navigator: NSObject {
 
     private func useCompass(_ value: Double) {
         compass = value
-        if !simulating, speed <= Self.courseSpeed { heading = value }
+        if !simulating, speed <= courseSpeed { heading = value }
     }
 
     /// Works out which way the back camera faces, from gravity and the calibrated magnetic

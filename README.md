@@ -85,3 +85,25 @@ captures the screen (camera + HUD + mic) and saves the clip to Photos.
 A GTA V story-mode checklist: every story mission in order, plus when to do (or skip) Lester's assassinations and which stock to buy before and after each one.
 Tick a mission off (or press **Mark mission complete**) and the next one comes up. Progress and your optional real
 bank total are saved in the browser. Steps and stock tips live in the `STEPS` array in `billion/main.js`.
+
+## OBS HUD overlay
+
+A GTA-style HUD for streamers: health and special bars, wanted stars, money, police
+lights and a minimap. It's at `obs/`. Each streamer opens `obs/control.html` once. The
+page makes them a private room code and shows two links to paste into OBS: a
+**Browser source** (the overlay, 1920 × 1080) and a **Custom Browser Dock** (the
+controls, which viewers never see). The dock and overlay sync through a small relay,
+and different streamers' rooms never mix.
+
+- **While developing:** `npm run dev` includes a local relay, so it works with no setup.
+- **When hosted:** the relay is the Cloudflare Worker in `relay/`. Deploy it once:
+
+  ```bash
+  cd relay
+  npx wrangler login
+  npx wrangler deploy
+  ```
+
+  Then set the repo variable `HUD_RELAY_URL` to the worker's address, using `wss://`
+  rather than `https://`. For example, `wss://hud-overlay-relay.<you>.workers.dev`.
+  The next GitHub Pages build picks it up.

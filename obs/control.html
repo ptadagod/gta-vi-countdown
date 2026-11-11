@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HUD Control</title>
+    <link rel="stylesheet" href="./control.css" />
+  </head>
+  <body>
+    <main>
+      <details class="setup" id="setup">
+        <summary>
+          <span>Set up in OBS</span>
+          <span class="status" id="status"><i></i><b>Connecting…</b></span>
+        </summary>
+        <div class="setup-body">
+          <p class="warn" id="relayMissing" hidden>The relay isn't set up for this site yet, so the overlay can't receive anything.</p>
+          <ol>
+            <li>
+              <p>In OBS, add a <b>Browser</b> source with this link. Set it to <b>1920 × 1080</b>.</p>
+              <div class="copy"><code id="overlayUrl"></code><button data-act="copy" data-target="overlayUrl">Copy</button></div>
+            </li>
+            <li>
+              <p>In OBS, open <b>Docks → Custom Browser Docks…</b>, name it <b>HUD Control</b> and paste this link. Viewers never see the dock.</p>
+              <div class="copy"><code id="dockUrl"></code><button data-act="copy" data-target="dockUrl">Copy</button></div>
+            </li>
+            <li><p>Use the dock to control your HUD while you stream.</p></li>
+          </ol>
+          <details class="more">
+            <summary>Separate pieces (to place each one yourself)</summary>
+            <div id="links"></div>
+          </details>
+          <div class="code-row">
+            <span>Your private code: <b id="roomCode"></b></span>
+            <button data-act="newRoom">New code</button>
+          </div>
+          <p class="note">Anyone with your dock link can control your HUD, so only share it with people you trust (a mod, say). If it leaks, make a new code and update both links in OBS.</p>
+        </div>
+      </details>
+
+      <section>
+        <h2>Wanted <span class="readout" id="starsOut">0★</span></h2>
+        <div class="row">
+          <button data-act="star">Add a star</button>
+          <button data-act="unstar">Remove a star</button>
+        </div>
+        <div class="row">
+          <button data-act="evade" id="evade">Evade</button>
+          <button data-act="clear">Lose the cops</button>
+        </div>
+        <div class="row clues" id="clues"></div>
+        <label class="check"><input type="checkbox" id="random" /> Random wanted (a witness reports you every few minutes)</label>
+        <label class="field">Police lights from
+          <select id="lights">
+            <option value="behind">Behind (bottom edge)</option>
+            <option value="ahead">Ahead (top edge)</option>
+            <option value="left">Left</option>
+            <option value="right">Right</option>
+            <option value="around">Moving around</option>
+          </select>
+        </label>
+      </section>
+
+      <section>
+        <h2>Minimap <span class="readout" id="navOut"></span></h2>
+        <label class="search">Where you are
+          <input id="startSearch" type="search" placeholder="Search a place…" autocomplete="off" spellcheck="false" />
+          <ul class="results" hidden></ul>
+        </label>
+        <label class="search">Waypoint
+          <input id="destSearch" type="search" placeholder="Search a place…" autocomplete="off" spellcheck="false" />
+          <ul class="results" hidden></ul>
+        </label>
+        <div class="row">
+          <button data-act="drive" id="drive">Drive</button>
+          <button data-act="clearDest">Clear waypoint</button>
+        </div>
+        <label class="field">Drive speed
+          <select id="kmh">
+            <option value="30">30 km/h</option>
+            <option value="50">50 km/h</option>
+            <option value="80">80 km/h</option>
+            <option value="100">100 km/h</option>
+            <option value="200">200 km/h (fast-forward)</option>
+          </select>
+        </label>
+      </section>
+
+      <section>
+        <h2>Health <span class="readout" id="healthOut"></span></h2>
+        <input type="range" id="health" min="0" max="100" />
+        <h2>Special ability <span class="readout" id="specialOut"></span></h2>
+        <input type="range" id="special" min="0" max="100" />
+        <div class="row">
+          <button data-act="special" id="useSpecial">Use special (15 s)</button>
+        </div>
+        <label class="check"><input type="checkbox" id="recharge" /> Recharge special slowly (full in 2 min)</label>
+      </section>
+
+      <section>
+        <h2>Money</h2>
+        <label class="field">Bank <input type="number" id="bank" min="0" step="1" /></label>
+        <label class="field">Cash <input type="number" id="cash" min="0" step="1" /></label>
+        <div class="row">
+          <button data-act="cash+100">+$100 cash</button>
+          <button data-act="cash+1000">+$1,000 cash</button>
+        </div>
+        <label class="field">Show money
+          <select id="money">
+            <option value="auto">When not wanted</option>
+            <option value="always">Always</option>
+            <option value="off">Never</option>
+          </select>
+        </label>
+      </section>
+
+    </main>
+    <script type="module" src="./control.js"></script>
+  </body>
+</html>

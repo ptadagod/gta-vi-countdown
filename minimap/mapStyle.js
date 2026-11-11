@@ -3,7 +3,7 @@
 // in-game minimap: beige ground, grey-green parks, slate water, cream roads,
 // extruded buildings with a fake soft shadow, and a pink GPS route.
 
-export const PINK = '#f2368f'
+export const PINK = '#fc80ae'
 
 const C = {
   ground: '#e4ddcf',
