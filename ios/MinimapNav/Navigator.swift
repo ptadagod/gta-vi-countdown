@@ -242,6 +242,16 @@ final class Navigator: NSObject {
 
     // MARK: Location updates
 
+    /// Every accepted GPS fix with the heading worked out from it (for the OBS link).
+    @ObservationIgnored var onFix: ((CLLocation, Double) -> Void)?
+
+    /// Keep receiving GPS with the screen locked or the app in the background (blue pill in the status bar).
+    func keepRunningInBackground(_ on: Bool) {
+        manager.allowsBackgroundLocationUpdates = on
+        manager.showsBackgroundLocationIndicator = on
+        manager.pausesLocationUpdatesAutomatically = !on
+    }
+
     fileprivate func ingest(_ fix: CLLocation) {
         guard fix.horizontalAccuracy >= 0, fix.horizontalAccuracy < 100 else { return }
         let first = !hasGPS
@@ -257,6 +267,7 @@ final class Navigator: NSObject {
             heading = compass
         }
         position = fix.coordinate
+        onFix?(fix, heading)
         if first { show("GPS locked") }
     }
 

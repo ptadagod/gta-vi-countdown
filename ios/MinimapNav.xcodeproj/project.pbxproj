@@ -184,6 +184,7 @@
 				DEVELOPMENT_TEAM = S69VK33899;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "MinimapNav-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Minimap Nav";
 				INFOPLIST_KEY_NSCameraUsageDescription = "The camera fills the screen behind the minimap while you navigate and record.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Your location places you on the minimap and keeps the route up to date.";
@@ -214,6 +215,7 @@
 				DEVELOPMENT_TEAM = S69VK33899;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "MinimapNav-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Minimap Nav";
 				INFOPLIST_KEY_NSCameraUsageDescription = "The camera fills the screen behind the minimap while you navigate and record.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Your location places you on the minimap and keeps the route up to date.";

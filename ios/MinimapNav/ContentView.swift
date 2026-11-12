@@ -26,6 +26,7 @@ struct ContentView: View {
     @State private var showWheel = false
     @State private var carLink = CarLink()
     @State private var money = Money()
+    @State private var obsLink = OBSLink()
     private let hudInset: CGFloat = 24
 
     var body: some View {
@@ -222,10 +223,10 @@ struct ContentView: View {
             Text("Whenever it connects, the app will switch to driving mode with the wanted level.")
         }
         .fullScreenCover(isPresented: $showFullMap) {
-            FullMapScreen(nav: nav, wanted: wanted, carLink: carLink, money: money)
+            FullMapScreen(nav: nav, wanted: wanted, carLink: carLink, money: money, obsLink: obsLink)
         }
         .sheet(isPresented: $showSearch) {
-            SearchSheet(nav: nav, wanted: wanted, carLink: carLink, money: money)
+            SearchSheet(nav: nav, wanted: wanted, carLink: carLink, money: money, obsLink: obsLink)
                 .presentationDetents([.medium, .large])
         }
         .onAppear {
@@ -238,6 +239,11 @@ struct ContentView: View {
                 nav.show(connected ? "\(name) connected · driving mode" : "Car disconnected")
             }
             carLink.start()
+            // Your GPS to the OBS overlay, also in the background while it's switched on.
+            nav.onFix = { [obsLink] fix, heading in obsLink.send(fix, heading: heading) }
+            obsLink.onSendingChange = { [nav] on in nav.keepRunningInBackground(on) }
+            nav.keepRunningInBackground(obsLink.sending)
+            obsLink.start()
             recorder.glows = { [policeGlow, nav, wanted, special] size in
                 // Purple tint while the special ability runs: one huge, soft glow over the whole frame.
                 let tint = special.active
@@ -565,6 +571,7 @@ struct SearchSheet: View {
     let wanted: WantedLevel
     let carLink: CarLink
     let money: Money
+    @Bindable var obsLink: OBSLink
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var results: [Place] = []
@@ -610,6 +617,18 @@ struct SearchSheet: View {
                 }
                 if query.isEmpty {
                     CarSection(carLink: carLink)
+                    Section {
+                        TextField("Room code or OBS link", text: $obsLink.room)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                        Toggle("Send my GPS to OBS", isOn: $obsLink.sending)
+                            .disabled(!obsLink.valid)
+                        Text(obsLink.status).foregroundStyle(.secondary)
+                    } header: {
+                        Text("Stream (OBS)")
+                    } footer: {
+                        Text("Paste your OBS link or its room code. While this is on, the minimap on stream follows you, even with the phone locked (you'll see a blue location pill).")
+                    }
                     MoneySection(money: money)
                     Section("Wanted level") {
                         Button(wanted.stars == 0 ? "Get wanted" : "Add a star (\(wanted.stars) of \(WantedLevel.maxStars))") {

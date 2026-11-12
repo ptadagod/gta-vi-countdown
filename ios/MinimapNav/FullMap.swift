@@ -9,6 +9,7 @@ struct FullMapScreen: View {
     let wanted: WantedLevel
     let carLink: CarLink
     let money: Money
+    let obsLink: OBSLink
     @Environment(\.dismiss) private var dismiss
     @State private var showSearch = false
     @State private var recenter = 0
@@ -46,7 +47,7 @@ struct FullMapScreen: View {
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
         .sheet(isPresented: $showSearch) {
-            SearchSheet(nav: nav, wanted: wanted, carLink: carLink, money: money)
+            SearchSheet(nav: nav, wanted: wanted, carLink: carLink, money: money, obsLink: obsLink)
                 .presentationDetents([.medium, .large])
         }
     }
