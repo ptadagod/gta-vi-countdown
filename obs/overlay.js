@@ -106,6 +106,7 @@ function render() {
   $('.reserve').textContent = s.ammo ?? 0
 
   $('.wanted').classList.toggle('off', s.stars === 0)
+  document.body.classList.toggle('wanted', s.stars > 0)
   const clues = CLUES.filter((c) => s.clues.includes(c)).join()
   if (clues !== shownClues) {
     shownClues = clues

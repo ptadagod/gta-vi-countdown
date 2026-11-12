@@ -512,3 +512,6 @@ body.wheel-open .corner { filter: blur(calc(var(--u) * 6)); opacity: 0.45; }
   color: var(--c);
 }
 .consumable .badge-dot svg { width: 60%; height: 60%; }
+
+/* While wanted the minimap only flashes red/blue: no pale haze over it. */
+body.wanted .minimap .haze { display: none; }
