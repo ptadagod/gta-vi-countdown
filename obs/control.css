@@ -137,3 +137,21 @@ input[type='range'] { width: 100%; accent-color: var(--pink); }
 .results li:hover { background: rgba(255, 255, 255, 0.08); }
 .results small { display: block; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .results .empty { color: var(--muted); cursor: default; }
+
+/* Weapon wheel picker: 3×3, slots around a name in the middle. */
+.wheel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.wheel-grid .slot {
+  aspect-ratio: 92 / 64;
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  background: #2a2530;
+}
+.wheel-grid .slot img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.wheel-grid .slot .plus { color: var(--muted); font-size: 18px; }
+.wheel-grid .slot.active { box-shadow: inset 0 -6px 10px -4px #1fdcb8; }
+.wheel-grid .slot.focus { outline: 2px solid #fff; outline-offset: -2px; }
+.wheel-name { display: grid; place-items: center; text-align: center; align-content: center; gap: 2px; }
+.wheel-name b { font-size: 12px; text-transform: uppercase; }
+.wheel-name span { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+.tabs button.on { background: #fff; color: #111; }

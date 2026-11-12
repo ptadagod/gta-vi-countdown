@@ -333,3 +333,151 @@ body.preview {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ---------- Weapon wheel ---------- */
+/* Sizes follow the phone app's wheel, 1.3× for the 1080p canvas. */
+.wheel { position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+.wheel-tint {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 14, 0.55);
+  backdrop-filter: blur(calc(var(--u) * 10));
+  -webkit-backdrop-filter: blur(calc(var(--u) * 10));
+}
+/* The bars and cash stay on top of the tint while the wheel is open. */
+.stats, .right { z-index: 6; }
+body.wheel-open .wanted, body.wheel-open .weapon { visibility: hidden; }
+
+.wheel-ring { position: absolute; left: 50%; top: 50%; }
+.wheel-tabs {
+  position: absolute;
+  left: 0;
+  top: calc(var(--u) * -238);
+  transform: translateX(-50%);
+  display: flex;
+  gap: calc(var(--u) * 5);
+}
+.wheel-tabs span {
+  font: 800 calc(var(--u) * 17) / 1 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  text-transform: uppercase;
+  color: #fff;
+  background: rgba(30, 30, 34, 0.75);
+  padding: calc(var(--u) * 5) calc(var(--u) * 12);
+}
+.wheel-tabs span.on { background: #fff; color: #000; }
+.wheel-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  white-space: nowrap;
+  text-transform: uppercase;
+  text-shadow: 0 0 calc(var(--u) * 4) rgba(0, 0, 0, 0.5);
+}
+.wheel-label b { font: 800 calc(var(--u) * 25) / 1.05 'Barlow Condensed', 'Arial Narrow', sans-serif; color: #fff; }
+.wheel-label span { font: 700 calc(var(--u) * 17) / 1.1 'Barlow Condensed', 'Arial Narrow', sans-serif; color: rgba(255, 255, 255, 0.65); }
+
+.slot {
+  --w: calc(var(--u) * 120);
+  --h: calc(var(--u) * 83);
+  --strip: calc(var(--u) * 22);
+  position: absolute;
+  left: calc(var(--x) * var(--u) - var(--w) / 2);
+  top: calc(var(--y) * var(--u) - var(--h) / 2);
+  width: var(--w);
+  height: var(--h);
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 0 calc(var(--u) * 0.75) rgba(190, 190, 190, 0.35);
+  transition: background 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+.slot.empty { background: rgba(255, 255, 255, 0.1); }
+.slot.focus { background: rgba(255, 255, 255, 0.42); box-shadow: inset 0 0 0 calc(var(--u) * 2.5) #fff; }
+.slot .pic {
+  position: absolute;
+  inset: calc(var(--u) * 8) calc(var(--u) * 10);
+  display: grid;
+  place-items: center;
+}
+.slot.has-strip .pic { bottom: calc(var(--strip) + var(--u) * 4); }
+.slot .pic img { width: 100%; height: 100%; object-fit: contain; }
+.slot .plus { color: rgba(255, 255, 255, 0.45); font: 300 calc(var(--u) * 20) / 1 system-ui, sans-serif; }
+/* Equipped glow: guns from just above their strip, unarmed from the top edge. */
+.slot .glow {
+  position: absolute;
+  left: -5%;
+  width: 110%;
+  height: 50%;
+  bottom: calc(var(--strip) - 25%);
+  background: radial-gradient(closest-side, rgba(31, 219, 184, 0.9), transparent);
+}
+.slot.unarmed .glow { bottom: auto; top: -25%; background: radial-gradient(closest-side, rgba(250, 140, 190, 0.9), transparent); }
+.slot .strip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--strip);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: calc(var(--u) * 5);
+  background: rgba(36, 36, 36, 0.9);
+  color: #fff;
+  font: calc(var(--u) * 17) / 1 'Hustle Cash', 'Barlow Condensed', 'Arial Narrow', sans-serif;
+}
+.slot .strip .spare { color: #bfbfbf; }
+.slot .strip.word { font: 800 calc(var(--u) * 17) / 1 'Barlow Condensed', 'Arial Narrow', sans-serif; }
+.slot .tick {
+  position: absolute;
+  right: calc(var(--u) * 5);
+  bottom: calc(var(--u) * 5);
+  width: calc(var(--u) * 17);
+  height: calc(var(--u) * 17);
+  border-radius: 50%;
+  background: #fff;
+  color: #000;
+  display: grid;
+  place-items: center;
+  font: 900 calc(var(--u) * 12) / 1 system-ui, sans-serif;
+}
+
+/* Pills and injector, bottom-left while the wheel is open. */
+.consumables {
+  position: absolute;
+  left: var(--inset);
+  bottom: var(--inset);
+  display: flex;
+  gap: calc(var(--u) * 10);
+}
+.consumable {
+  width: calc(var(--u) * 83);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 0 calc(var(--u) * 0.75) rgba(190, 190, 190, 0.35);
+}
+.consumable.out { opacity: 0.45; }
+.consumable .pic { height: calc(var(--u) * 57); padding: calc(var(--u) * 7); }
+.consumable .pic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.consumable .strip {
+  height: calc(var(--u) * 22);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: calc(var(--u) * 5);
+  background: rgba(36, 36, 36, 0.9);
+  color: #fff;
+  font: calc(var(--u) * 17) / 1 'Hustle Cash', 'Barlow Condensed', 'Arial Narrow', sans-serif;
+}
+.consumable .badge-dot {
+  width: calc(var(--u) * 17);
+  height: calc(var(--u) * 17);
+  border-radius: 50%;
+  background: #333;
+  display: grid;
+  place-items: center;
+  color: var(--c);
+}
+.consumable .badge-dot svg { width: 60%; height: 60%; }

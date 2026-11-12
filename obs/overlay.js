@@ -1,9 +1,59 @@
 import { CLUES, MAX_STARS, dollars, load, subscribe, svg } from './shared.js'
-import { WEAPONS, weaponImg, weaponKey } from './weapons.js'
+import { INJECTOR, PILLS, WEAPONS, WHEEL, slotInfo, weaponImg, weaponKey } from './weapons.js'
+
+// ---------- Weapon wheel ----------
+
+// Slot centres (in --u units), clockwise from the top; the phone app's octagon, 1.3× bigger.
+const SPOTS = [[0, -166], [143, -104], [179, 0], [143, 104], [0, 166], [-143, 104], [-179, 0], [-143, -104]]
+const $wheel = (sel) => document.querySelector(`.wheel ${sel}`)
+let wheelKey = ''
+
+function renderWheel(s) {
+  const w = { tab: 'weapons', focus: 2, ...s.wheel }
+  const keys = WHEEL[w.tab] ?? WHEEL.weapons
+  const current = weaponKey(s.weapon)
+  const wearing = s.wearing ?? []
+  const ammoOf = (k) => (k === current ? [s.clip ?? 0, s.ammo ?? 0] : s.ammoBy?.[k] ?? WEAPONS[k].start)
+
+  // Rebuild only when something on the wheel changed.
+  const key = JSON.stringify([w, current, s.clip, s.ammo, s.ammoBy, wearing, s.pills, s.injectors])
+  if (key === wheelKey) return
+  wheelKey = key
+
+  document.querySelectorAll('.wheel-tabs span').forEach((t) => t.classList.toggle('on', t.dataset.tab === w.tab))
+  const f = slotInfo(w.tab, keys[w.focus])
+  $wheel('.wheel-label b').textContent = f.name
+  $wheel('.wheel-label span').textContent = f.group
+
+  $wheel('.slots').innerHTML = keys.map((k, i) => {
+    const info = slotInfo(w.tab, k)
+    const [x, y] = SPOTS[i]
+    const equipped = w.tab === 'weapons' && (k === 'unarmed' ? current === 'none' : k === current)
+    let strip = ''
+    if (w.tab === 'weapons' && WEAPONS[k]?.mag) {
+      const [clip, spare] = ammoOf(k)
+      strip = `<div class="strip"><span>${clip}</span><span class="spare">${spare}</span></div>`
+    } else if (w.tab === 'items' && k && k !== 'outfit') {
+      strip = `<div class="strip word">${wearing.includes(k) ? 'ON' : 'OFF'}</div>`
+    }
+    const cls = ['slot', !k && 'empty', i === w.focus && 'focus', strip && 'has-strip', k === 'unarmed' && 'unarmed'].filter(Boolean).join(' ')
+    return `<div class="${cls}" style="--x:${x};--y:${y}">
+      ${equipped ? '<div class="glow"></div>' : ''}
+      <div class="pic">${info.icon ? `<img src="${info.icon}" alt="">` : '<span class="plus">+</span>'}</div>
+      ${strip}${k === 'outfit' ? '<div class="tick">✓</div>' : ''}
+    </div>`
+  }).join('')
+
+  const card = (img, n, badge, color) => `<div class="consumable${n > 0 ? '' : ' out'}">
+    <div class="pic"><img src="${img}" alt=""></div>
+    <div class="strip"><span>${n}</span><span class="badge-dot" style="--c:${color}">${svg(badge)}</span></div>
+  </div>`
+  $wheel('.consumables').innerHTML = card(PILLS, s.pills ?? 0, 'heart', '#edb8cc') + card(INJECTOR, s.injectors ?? 0, 'eye', '#ab94fa')
+}
 
 // Options from the source URL, e.g. index.html?parts=wanted,money&scale=1.5
 const params = new URLSearchParams(location.search)
-const parts = new Set((params.get('parts') || 'health,stamina,special,weapon,wanted,money,lights,tint,minimap,directions').split(','))
+const parts = new Set((params.get('parts') || 'health,stamina,special,weapon,wanted,money,lights,tint,minimap,directions,wheel').split(','))
 const scale = Number(params.get('scale')) || 1
 document.documentElement.style.setProperty('--u', `${2 * scale}px`)
 if (params.has('preview')) document.body.classList.add('preview')
@@ -65,8 +115,15 @@ function render() {
   }
 
   // Money sits where the stars are when you're not wanted, like the phone app.
-  // Money shows while no weapon is out.
-  const money = s.money === 'always' || (s.money === 'auto' && weaponKey(s.weapon) === 'none')
+  // Weapon wheel (from the dock). While it's open the cash takes the top spot, unless wanted.
+  const wheelOpen = parts.has('wheel') && Boolean(s.wheel?.open)
+  document.body.classList.toggle('wheel-open', wheelOpen)
+  $('.wheel').hidden = !wheelOpen
+  if (wheelOpen) renderWheel(s)
+
+  // Money shows while no weapon is out (or on the open wheel when not wanted).
+  const money = wheelOpen ? s.stars === 0 && s.money !== 'off'
+    : s.money === 'always' || (s.money === 'auto' && weaponKey(s.weapon) === 'none')
   $('.money').hidden = !parts.has('money') || !money
   $('.bank .amount').textContent = dollars(s.bank)
   $('.cash .amount').textContent = dollars(s.cash)

@@ -121,6 +121,24 @@
       </section>
 
       <section>
+        <h2>Weapon wheel</h2>
+        <div class="row">
+          <button data-act="wheel" id="wheelToggle">Open wheel</button>
+        </div>
+        <div class="row tabs">
+          <button data-wheeltab="weapons">Weapons</button>
+          <button data-wheeltab="items">Items</button>
+        </div>
+        <div class="wheel-grid" id="wheelGrid"></div>
+        <p class="note">Click a slot to pick it on stream. With the dock focused: arrows move, Enter picks, Esc closes.</p>
+        <div class="row">
+          <button data-act="pill">Pills (<span id="pillsOut"></span>) +50% health</button>
+          <button data-act="injector">Injector (<span id="injectorsOut"></span>) full special</button>
+        </div>
+        <div class="row"><button data-act="restock">Restock pills + injector</button></div>
+      </section>
+
+      <section>
         <h2>Money</h2>
         <label class="field">Bank <input type="number" id="bank" min="0" step="1" /></label>
         <label class="field">Cash <input type="number" id="cash" min="0" step="1" /></label>

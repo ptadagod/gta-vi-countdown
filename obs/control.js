@@ -1,7 +1,7 @@
 import { CLUES, MAX_STARS, load, newRoomCode, onStatus, relayUrl, room, save, subscribe, svg } from './shared.js'
 import { searchPlaces } from '../minimap/geo.js'
 import { fetchRoute, formatDistance, locate } from './nav.js'
-import { WEAPONS, weaponKey } from './weapons.js'
+import { ITEMS, WEAPONS, WHEEL, slotInfo, weaponKey } from './weapons.js'
 
 // The control panel owns the game logic (blinking, evading, random reports, the special
 // ability timer) so every overlay source shows the same thing.
@@ -36,6 +36,73 @@ function reload() {
   const take = Math.min(w.mag - (state.clip ?? 0), state.ammo ?? 0)
   if (take > 0) set({ clip: state.clip + take, ammo: state.ammo - take })
 }
+
+// Switch weapon, keeping each gun's own clip and spare ammo.
+function equip(kind) {
+  const cur = weaponKey(state.weapon)
+  if (kind === cur) return
+  const ammoBy = { ...(state.ammoBy ?? {}) }
+  if (WEAPONS[cur]) ammoBy[cur] = [state.clip ?? 0, state.ammo ?? 0]
+  const next = WEAPONS[kind] ? (ammoBy[kind] ?? WEAPONS[kind].start) : null
+  set({ weapon: kind, ammoBy, ...(next ? { clip: next[0], ammo: next[1] } : {}) })
+}
+
+// ---------- Weapon wheel ----------
+
+// Dock grid cell for each wheel slot (3×3, centre is the label).
+const CELL = [1, 2, 5, 8, 7, 6, 3, 0]
+const wheel = () => ({ open: false, tab: 'weapons', focus: 2, ...(state.wheel ?? {}) })
+function setWheel(patch) { set({ wheel: { ...wheel(), ...patch } }) }
+
+/** Select a slot: weapons equip at once, items switch on or off. */
+function pickSlot(i) {
+  const w = wheel()
+  const key = WHEEL[w.tab][i]
+  setWheel({ focus: i })
+  if (!key) return
+  if (w.tab === 'weapons') equip(key === 'unarmed' ? 'none' : key)
+  else if (key !== 'outfit') {
+    const on = (state.wearing ?? []).includes(key)
+    set({ wearing: on ? state.wearing.filter((x) => x !== key) : [...(state.wearing ?? []), key] })
+  }
+}
+
+function showWheel() {
+  const w = wheel()
+  $('#wheelToggle').textContent = w.open ? 'Close wheel' : 'Open wheel'
+  $('#wheelToggle').classList.toggle('on', w.open)
+  document.querySelectorAll('[data-wheeltab]').forEach((b) => b.classList.toggle('on', b.dataset.wheeltab === w.tab))
+  const cells = Array(9).fill('')
+  WHEEL[w.tab].forEach((key, i) => {
+    const info = slotInfo(w.tab, key)
+    const active = w.tab === 'weapons'
+      ? (key === 'unarmed' ? weaponKey(state.weapon) === 'none' : key === weaponKey(state.weapon))
+      : (state.wearing ?? []).includes(key)
+    cells[CELL[i]] = `<button class="slot${i === w.focus ? ' focus' : ''}${active ? ' active' : ''}" data-slot="${i}" title="${info.name}">
+      ${info.icon ? `<img src="${info.icon}" alt="">` : '<span class="plus">+</span>'}</button>`
+  })
+  const f = slotInfo(w.tab, WHEEL[w.tab][w.focus])
+  cells[4] = `<div class="wheel-name"><b>${f.name}</b><span>${f.group}</span></div>`
+  $('#wheelGrid').innerHTML = cells.join('')
+  $('#pillsOut').textContent = state.pills ?? 0
+  $('#injectorsOut').textContent = state.injectors ?? 0
+}
+
+document.addEventListener('click', (e) => {
+  const slot = e.target.closest('[data-slot]')
+  if (slot) { pickSlot(+slot.dataset.slot); return }
+  const tab = e.target.closest('[data-wheeltab]')
+  if (tab) setWheel({ tab: tab.dataset.wheeltab, focus: tab.dataset.wheeltab === 'weapons' ? 2 : 2 })
+})
+
+// Arrow keys move around the wheel, Enter picks, Esc closes (while the dock has focus).
+document.addEventListener('keydown', (e) => {
+  if (!wheel().open || e.target.closest('input, select, textarea')) return
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key]
+  if (step) { setWheel({ focus: (wheel().focus + step + 8) % 8 }); e.preventDefault() }
+  else if (e.key === 'Enter') { pickSlot(wheel().focus); e.preventDefault() }
+  else if (e.key === 'Escape') setWheel({ open: false })
+})
 
 function learn(clue) {
   if (!state.clues.includes(clue)) set({ clues: [...state.clues, clue] })
@@ -78,6 +145,14 @@ document.addEventListener('click', (e) => {
     case 'burst': shoot(5); break
     case 'reload': reload(); break
     case 'ammo+': set({ ammo: (state.ammo ?? 0) + 100 }); break
+    case 'wheel': setWheel({ open: !wheel().open }); break
+    case 'pill':
+      if ((state.pills ?? 0) > 0) set({ pills: state.pills - 1, health: Math.min(1, state.health + 0.5) })
+      break
+    case 'injector':
+      if ((state.injectors ?? 0) > 0) set({ injectors: state.injectors - 1, special: 1 })
+      break
+    case 'restock': set({ pills: 2, injectors: 2 }); break
     case 'cash+100': set({ cash: state.cash + 100 }); break
     case 'cash+1000': set({ cash: state.cash + 1000 }); break
     case 'copy':
@@ -98,10 +173,7 @@ $('#stamina').addEventListener('input', (e) => set({ stamina: e.target.value / 1
 $('#special').addEventListener('input', (e) => set({ special: e.target.value / 100 }))
 $('#lights').addEventListener('change', (e) => set({ lights: e.target.value }))
 $('#money').addEventListener('change', (e) => set({ money: e.target.value }))
-$('#weapon').addEventListener('change', (e) => {
-  const w = WEAPONS[e.target.value]
-  set({ weapon: e.target.value, ...(w ? { clip: Math.min(state.clip ?? 0, w.mag) } : {}) })
-})
+$('#weapon').addEventListener('change', (e) => equip(e.target.value))
 $('#bank').addEventListener('change', (e) => set({ bank: Math.max(0, Math.round(+e.target.value || 0)) }))
 $('#cash').addEventListener('change', (e) => set({ cash: Math.max(0, Math.round(+e.target.value || 0)) }))
 for (const id of ['random', 'recharge']) {
@@ -131,6 +203,7 @@ function show() {
   $('#money').value = state.money
   $('#weapon').value = weaponKey(state.weapon)
   $('#ammoOut').textContent = weaponKey(state.weapon) === 'none' ? 'hidden' : !WEAPONS[weaponKey(state.weapon)].mag ? 'no ammo' : `${state.clip ?? 0} / ${state.ammo ?? 0}`
+  showWheel()
   $('#evade').classList.toggle('on', state.evading)
   $('#evade').textContent = state.evading ? 'Evading…' : 'Evade'
   $('#useSpecial').classList.toggle('on', state.specialUntil > Date.now())
@@ -302,6 +375,7 @@ $('#dockUrl').textContent = linkFor('control.html')
 const pieces = [
   ['Health, stamina + special', 'parts=health,stamina,special'],
   ['Weapon + wanted + money', 'parts=weapon,wanted,money'],
+  ['Weapon wheel', 'parts=wheel'],
   ['Police lights + purple tint', 'parts=lights,tint'],
   ['Minimap + turn box', 'parts=minimap,directions'],
 ]

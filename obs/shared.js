@@ -21,6 +21,11 @@ export const defaults = {
   weapon: 'smg', // pistol | smg | shotgun | binoculars | none
   clip: 20, // rounds in the gun
   ammo: 205, // rounds in reserve
+  ammoBy: { pistol: [12, 80], shotgun: [6, 18], binoculars: [0, 0] }, // clip + spare for the guns not in hand
+  wheel: { open: false, tab: 'weapons', focus: 2 }, // the weapon wheel on stream
+  wearing: ['outfit'], // items switched on from the wheel
+  pills: 2, // restore health
+  injectors: 2, // refill special
   money: 'auto', // auto (hidden while a weapon is out) | always | off
   // Minimap: where you are, the waypoint and route, and the pretend drive along it.
   nav: { pos: null, heading: 0, dest: null, destName: '', route: null, drive: { on: false, t0: 0, s0: 0, kmh: 50 } },
