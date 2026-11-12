@@ -168,7 +168,8 @@ body.preview {
   gap: calc(var(--u) * 5);
   transition: opacity 0.3s ease-out;
 }
-.wanted.off { opacity: 0; }
+/* Not wanted: the stars take no space, so the weapon and money sit at the very top. */
+.wanted.off { display: none; }
 
 .stars { display: flex; gap: calc(var(--u) * 4); }
 .star {
@@ -348,7 +349,7 @@ body.preview {
 .stats, .right { z-index: 6; }
 body.wheel-open .wanted, body.wheel-open .weapon { visibility: hidden; }
 
-.wheel-ring { position: absolute; left: 50%; top: 50%; }
+.wheel-ring { position: absolute; left: 50%; top: 50%; transform: scale(0.72); }
 .wheel-tabs {
   position: absolute;
   left: 0;
@@ -452,6 +453,8 @@ body.wheel-open .wanted, body.wheel-open .weapon { visibility: hidden; }
   bottom: var(--inset);
   display: flex;
   gap: calc(var(--u) * 10);
+  transform: scale(0.8);
+  transform-origin: bottom left;
 }
 .consumable {
   width: calc(var(--u) * 83);
