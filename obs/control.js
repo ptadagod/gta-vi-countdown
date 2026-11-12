@@ -1,5 +1,5 @@
 import { CLUES, MAX_STARS, load, newRoomCode, onStatus, relayUrl, room, save, subscribe, svg } from './shared.js'
-import { searchPlaces } from '../minimap/geo.js'
+import { bearing, haversine, searchPlaces } from '../minimap/geo.js'
 import { fetchRoute, formatDistance, locate } from './nav.js'
 import { ITEMS, WEAPONS, WHEEL, slotInfo, weaponKey } from './weapons.js'
 
@@ -8,6 +8,16 @@ import { ITEMS, WEAPONS, WHEEL, slotInfo, weaponKey } from './weapons.js'
 let state = load()
 const prefs = loadPrefs()
 const $ = (s) => document.querySelector(s)
+
+// Phone GPS (see the bottom of the file).
+let gpsActive = false
+let gpsWatch = null
+let wakeLock = null
+let lastFix = null // { pos, at }
+let compass = null // degrees, from the phone's compass
+let lastCompassSend = 0
+let offRouteSince = 0
+let rerouting = false
 
 function set(patch) {
   state = { ...state, ...patch }
@@ -140,6 +150,7 @@ document.addEventListener('click', (e) => {
       else if (state.special > 0) set({ specialUntil: Date.now() + 15000 * state.special })
       break
     case 'drive': toggleDrive(); break
+    case 'gps': gpsActive ? gpsStop() : gpsStart(); break
     case 'clearDest': setNav({ dest: null, destName: '', route: null, ...stopped() }); $('#destSearch').value = ''; break
     case 'shoot': shoot(1); break
     case 'burst': shoot(5); break
@@ -186,7 +197,7 @@ function show() {
   const here = locate(nav)
   $('#drive').textContent = nav.drive.on ? 'Stop' : 'Drive'
   $('#drive').classList.toggle('on', nav.drive.on)
-  $('#drive').disabled = !nav.route
+  $('#drive').disabled = !nav.route || gpsActive
   $('#kmh').value = nav.drive.kmh
   $('#navOut').textContent = here.track ? `${formatDistance(here.track.length - here.along)} to go` : nav.dest ? 'Routing…' : ''
   $('#starsOut').textContent = `${state.stars}★`
@@ -216,6 +227,8 @@ let evadeFor = 0
 let nextReport = Date.now() + rand(90, 300) * 1000
 
 setInterval(() => {
+  // A phone sending GPS leaves the game logic to the OBS dock, so nothing runs twice.
+  if (gpsActive) return
   const now = Date.now()
 
   // Reaching the waypoint ends the drive there.
@@ -419,3 +432,110 @@ onStatus((st) => {
   if (st === 'live') setTimeout(() => { if (!heard) save(state) }, 800)
 })
 show()
+
+// ---------- Phone GPS ----------
+// With the control page open on a phone, its location (and compass while standing still)
+// drives the minimap on stream. Rerouting and arrival happen here too.
+
+
+const isNum = (x) => typeof x === 'number' && !Number.isNaN(x)
+const screenAngle = () => screen.orientation?.angle ?? window.orientation ?? 0
+
+function onCompass(e) {
+  const h = isNum(e.webkitCompassHeading) ? e.webkitCompassHeading : e.absolute && isNum(e.alpha) ? 360 - e.alpha : null
+  if (h == null) return
+  compass = (h + screenAngle() + 360) % 360
+  // Standing still: turn the minimap with the phone, a few times a second at most.
+  const live = state.nav.live
+  if (!gpsActive || !live?.on || (live.speed ?? 0) > 2 || Date.now() - lastCompassSend < 700) return
+  if (Math.abs(((compass - (live.heading ?? 0) + 540) % 360) - 180) < 4) return
+  lastCompassSend = Date.now()
+  setNav({ live: { ...live, heading: compass } })
+}
+
+async function keepAwake() {
+  try { wakeLock = await navigator.wakeLock?.request('screen') } catch { wakeLock = null }
+}
+document.addEventListener('visibilitychange', () => {
+  if (gpsActive && document.visibilityState === 'visible') keepAwake()
+})
+
+async function gpsStart() {
+  if (!navigator.geolocation) { $('#gpsOut').textContent = "This browser can't share its location."; return }
+  // iPhone asks for compass access only from a tap.
+  try {
+    if (typeof DeviceOrientationEvent?.requestPermission === 'function') await DeviceOrientationEvent.requestPermission()
+  } catch {}
+  window.addEventListener('deviceorientation', onCompass)
+  gpsActive = true
+  $('#gpsOut').textContent = 'Finding you…'
+  keepAwake()
+  gpsWatch = navigator.geolocation.watchPosition(onFix, (err) => {
+    $('#gpsOut').textContent = err.code === 1
+      ? 'Location is blocked. Allow it for this site in Settings → Safari → Location, then try again.'
+      : `No GPS yet (${err.message}). Still trying…`
+    if (err.code === 1) gpsStop()
+  }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 })
+  showGps()
+}
+
+function gpsStop() {
+  if (gpsWatch != null) navigator.geolocation.clearWatch(gpsWatch)
+  gpsWatch = null
+  window.removeEventListener('deviceorientation', onCompass)
+  wakeLock?.release?.()
+  wakeLock = null
+  const was = gpsActive
+  gpsActive = false
+  if (was) {
+    const here = locate(state.nav)
+    setNav({ live: { on: false }, pos: here.pos, heading: here.heading, drive: { ...state.nav.drive, on: false, t0: Date.now(), s0: here.along } })
+  }
+  showGps()
+}
+
+function onFix(p) {
+  const pos = [+p.coords.longitude.toFixed(6), +p.coords.latitude.toFixed(6)]
+  const speed = isNum(p.coords.speed) && p.coords.speed >= 0 ? p.coords.speed : 0
+  const prev = state.nav.live?.on ? state.nav.live.heading : state.nav.heading
+  let heading = prev ?? 0
+  if (speed > 2 && isNum(p.coords.heading) && p.coords.heading >= 0) heading = p.coords.heading
+  else if (lastFix && haversine(lastFix.pos, pos) > 8 && speed > 1) heading = bearing(lastFix.pos, pos)
+  else if (compass != null && speed <= 2) heading = compass
+  lastFix = { pos, at: Date.now() }
+
+  setNav({ live: { on: true, pos, heading, speed, acc: Math.round(p.coords.accuracy), at: Date.now() }, drive: { ...state.nav.drive, on: false } })
+  $('#gpsOut').textContent = `Sending your location (±${Math.round(p.coords.accuracy)} m, ${Math.round(speed * 3.6)} km/h). Keep this page open.`
+  followRoute(pos, heading, speed)
+}
+
+/** Reroute when you leave the route; clear the waypoint when you get there. */
+function followRoute(pos, heading, speed) {
+  const nav = state.nav
+  if (!nav.route || !nav.dest) { offRouteSince = 0; return }
+  const here = locate(nav)
+  if (here.track && here.along >= here.track.length - 25 && haversine(pos, nav.dest) < 60) {
+    setNav({ dest: null, destName: '', route: null })
+    $('#destSearch').value = ''
+    $('#navOut').textContent = 'Arrived'
+    return
+  }
+  const off = here.track ? here.track.snap(pos).offset : 0
+  if (off < 45) { offRouteSince = 0; return }
+  offRouteSince ||= Date.now()
+  if (rerouting || Date.now() - offRouteSince < 4000) return
+  rerouting = true
+  const dest = nav.dest
+  fetchRoute(pos, dest, speed > 2 ? heading : null)
+    .then((r) => { if (state.nav.dest === dest) setNav({ route: r }) })
+    .catch(() => {})
+    .finally(() => { rerouting = false; offRouteSince = 0 })
+}
+
+function showGps() {
+  $('#gps').textContent = gpsActive ? 'Stop sending GPS' : "Use this phone's GPS"
+  $('#gps').classList.toggle('on', gpsActive)
+  if (!gpsActive && !$('#gpsOut').textContent.startsWith('Location is blocked')) {
+    $('#gpsOut').textContent = 'Open this page on your phone and tap the button: the minimap on stream follows you. Keep the page open with the screen on.'
+  }
+}

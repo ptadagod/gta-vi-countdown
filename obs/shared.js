@@ -28,7 +28,7 @@ export const defaults = {
   injectors: 2, // refill special
   money: 'auto', // auto (hidden while a weapon is out) | always | off
   // Minimap: where you are, the waypoint and route, and the pretend drive along it.
-  nav: { pos: null, heading: 0, dest: null, destName: '', route: null, drive: { on: false, t0: 0, s0: 0, kmh: 50 } },
+  nav: { pos: null, heading: 0, dest: null, destName: '', route: null, drive: { on: false, t0: 0, s0: 0, kmh: 50 }, live: { on: false } },
 }
 
 const params = new URLSearchParams(location.search)

@@ -15,6 +15,13 @@ function trackFor(route) {
 
 /** Where you are right now: { pos, heading, along, speed (m/s), track, route }. */
 export function locate(nav, now = Date.now()) {
+  // Live GPS from a phone: use its position, and work out how far along the route it is.
+  const live = nav.live
+  if (live?.on && live.pos) {
+    const track = trackFor(nav.route)
+    const along = track ? track.snap(live.pos).along : 0
+    return { pos: live.pos, heading: live.heading ?? 0, along, speed: live.speed ?? 0, track, route: track ? nav.route : null, live: true }
+  }
   const route = nav.route
   const track = trackFor(route)
   if (!track) return { pos: nav.pos || FALLBACK, heading: nav.heading || 0, along: 0, speed: 0, track: null, route: null }
