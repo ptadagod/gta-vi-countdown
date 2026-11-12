@@ -341,13 +341,16 @@ body.preview {
 .wheel-tint {
   position: absolute;
   inset: 0;
-  background: rgba(10, 10, 14, 0.55);
+  background: rgba(10, 10, 14, 0.62);
   backdrop-filter: blur(calc(var(--u) * 10));
   -webkit-backdrop-filter: blur(calc(var(--u) * 10));
 }
 /* The bars and cash stay on top of the tint while the wheel is open. */
 .stats, .right { z-index: 6; }
 body.wheel-open .wanted, body.wheel-open .weapon { visibility: hidden; }
+/* OBS can't blur other sources from a web page, so at least blur and dim our own minimap. */
+.corner { transition: filter 0.2s ease-out, opacity 0.2s ease-out; }
+body.wheel-open .corner { filter: blur(calc(var(--u) * 6)); opacity: 0.45; }
 
 .wheel-ring { position: absolute; left: 50%; top: 50%; transform: scale(0.72); }
 .wheel-tabs {
@@ -397,15 +400,31 @@ body.wheel-open .wanted, body.wheel-open .weapon { visibility: hidden; }
 }
 .slot.empty { background: rgba(255, 255, 255, 0.1); }
 .slot.focus { background: rgba(255, 255, 255, 0.42); box-shadow: inset 0 0 0 calc(var(--u) * 2.5) #fff; }
+/* The picture gets a fixed box inside the tile (padding all round, above the strip). */
 .slot .pic {
   position: absolute;
-  inset: calc(var(--u) * 8) calc(var(--u) * 10);
-  display: grid;
-  place-items: center;
+  top: calc(var(--u) * 12);
+  bottom: calc(var(--u) * 12);
+  left: calc(var(--u) * 18);
+  right: calc(var(--u) * 18);
 }
-.slot.has-strip .pic { bottom: calc(var(--strip) + var(--u) * 4); }
-.slot .pic img { width: 100%; height: 100%; object-fit: contain; }
-.slot .plus { color: rgba(255, 255, 255, 0.45); font: 300 calc(var(--u) * 20) / 1 system-ui, sans-serif; }
+.slot.has-strip .pic { bottom: calc(var(--strip) + var(--u) * 8); }
+.slot .pic img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.slot .plus {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.45);
+  font: 300 calc(var(--u) * 20) / 1 system-ui, sans-serif;
+}
 /* Equipped glow: guns from just above their strip, unarmed from the top edge. */
 .slot .glow {
   position: absolute;
@@ -462,8 +481,17 @@ body.wheel-open .wanted, body.wheel-open .weapon { visibility: hidden; }
   box-shadow: inset 0 0 0 calc(var(--u) * 0.75) rgba(190, 190, 190, 0.35);
 }
 .consumable.out { opacity: 0.45; }
-.consumable .pic { height: calc(var(--u) * 57); padding: calc(var(--u) * 7); }
-.consumable .pic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.consumable .pic { position: relative; height: calc(var(--u) * 57); }
+.consumable .pic img {
+  position: absolute;
+  top: calc(var(--u) * 9);
+  bottom: calc(var(--u) * 9);
+  left: calc(var(--u) * 9);
+  right: calc(var(--u) * 9);
+  width: calc(100% - var(--u) * 18);
+  height: calc(100% - var(--u) * 18);
+  object-fit: contain;
+}
 .consumable .strip {
   height: calc(var(--u) * 22);
   display: flex;
