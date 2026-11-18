@@ -116,7 +116,7 @@ document.addEventListener('keydown', (e) => {
 
 // ---------- Show / hide HUD parts ----------
 
-const PARTS = { health: 'Health', stamina: 'Stamina', special: 'Special', wanted: 'Wanted stars', weapon: 'Weapon', money: 'Money', minimap: 'Minimap', lights: 'Police lights' }
+const PARTS = { health: 'Health', stamina: 'Stamina', special: 'Special', wanted: 'Wanted stars', weapon: 'Weapon', money: 'Money', minimap: 'Minimap', lights: 'Police lights', chat: 'Chat' }
 $('#toggles').innerHTML = Object.entries(PARTS).map(([k, label]) => `<button data-part="${k}">${label}</button>`).join('')
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-part]')
@@ -199,6 +199,7 @@ $('#special').addEventListener('input', (e) => set({ special: e.target.value / 1
 $('#lights').addEventListener('change', (e) => set({ lights: e.target.value }))
 $('#money').addEventListener('change', (e) => set({ money: e.target.value }))
 $('#weapon').addEventListener('change', (e) => equip(e.target.value))
+$('#chatChannel').addEventListener('change', (e) => set({ chatChannel: e.target.value.trim().toLowerCase().replace(/^#/, '') }))
 $('#bank').addEventListener('change', (e) => set({ bank: Math.max(0, Math.round(+e.target.value || 0)) }))
 $('#cash').addEventListener('change', (e) => set({ cash: Math.max(0, Math.round(+e.target.value || 0)) }))
 for (const id of ['random', 'recharge']) {
@@ -223,6 +224,7 @@ function show() {
   if (focused !== $('#stamina')) $('#stamina').value = Math.round((state.stamina ?? 1) * 100)
   if (focused !== $('#special')) $('#special').value = Math.round(state.special * 100)
   if (focused !== $('#bank')) $('#bank').value = state.bank
+  if (focused !== $('#chatChannel')) $('#chatChannel').value = state.chatChannel ?? ''
   if (focused !== $('#cash')) $('#cash').value = state.cash
   $('#lights').value = state.lights
   $('#money').value = state.money

@@ -1,4 +1,5 @@
 import { CLUES, MAX_STARS, dollars, load, subscribe, svg } from './shared.js'
+import { setChatChannel } from './chat.js'
 import { INJECTOR, PILLS, WEAPONS, WHEEL, slotInfo, weaponImg, weaponKey } from './weapons.js'
 
 // ---------- Weapon wheel ----------
@@ -53,7 +54,7 @@ function renderWheel(s) {
 
 // Options from the source URL, e.g. index.html?parts=wanted,money&scale=1.5
 const params = new URLSearchParams(location.search)
-const parts = new Set((params.get('parts') || 'health,stamina,special,weapon,wanted,money,lights,tint,minimap,directions,wheel').split(','))
+const parts = new Set((params.get('parts') || 'health,stamina,special,weapon,wanted,money,lights,tint,minimap,directions,wheel,chat').split(','))
 const scale = Number(params.get('scale')) || 1
 document.documentElement.style.setProperty('--u', `${2 * scale}px`)
 if (params.has('preview')) document.body.classList.add('preview')
@@ -136,6 +137,8 @@ function render() {
   $('.cash .amount').textContent = dollars(s.cash)
   $('.bank .ring').innerHTML = ring('bank', '#b87aff', (s.bank % 10000) / 10000)
   $('.cash .ring').innerHTML = ring('wallet', '#8ce080', (s.cash % 100) / 100)
+
+  if (parts.has('chat')) setChatChannel(s.chatChannel)
 }
 render()
 

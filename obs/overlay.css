@@ -516,3 +516,46 @@ body.wheel-open .corner { filter: blur(calc(var(--u) * 6)); opacity: 0.45; }
 
 /* While wanted the minimap only flashes red/blue: no pale haze over it. */
 body.wanted .minimap .haze { display: none; }
+
+/* ---------- Twitch chat, bottom right ---------- */
+
+.chat {
+  position: fixed;
+  right: var(--inset);
+  bottom: var(--inset);
+  width: calc(var(--u) * 208);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: calc(var(--u) * 4);
+  max-height: calc(var(--u) * 230); /* stays clear of the weapon and money */
+  overflow: hidden;
+  pointer-events: none;
+}
+.chat .msg {
+  max-width: 100%;
+  padding: calc(var(--u) * 5) calc(var(--u) * 9);
+  border-radius: calc(var(--u) * 11);
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 0 calc(var(--u) * 0.5) rgba(255, 255, 255, 0.14), 0 calc(var(--u) * 3) calc(var(--u) * 8) rgba(0, 0, 0, 0.35);
+  font: 600 calc(var(--u) * 12) / 1.25 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  color: rgba(255, 255, 255, 0.92);
+  overflow-wrap: anywhere;
+  opacity: 0;
+  transform: translateX(calc(var(--u) * 12));
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+.chat .msg.in { opacity: 1; transform: none; }
+.chat .msg.out { opacity: 0; transform: translateX(calc(var(--u) * 12)); }
+.chat .msg b {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-right: calc(var(--u) * 4);
+}
+.chat .emote {
+  height: calc(var(--u) * 14);
+  vertical-align: middle;
+  margin: calc(var(--u) * -2) 0;
+}
