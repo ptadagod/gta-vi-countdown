@@ -86,6 +86,12 @@ let shownClues = ''
 let shownGun = ''
 function render() {
   const s = state
+  // Parts switched off from the dock.
+  const off = new Set(s.hide ?? [])
+  document.querySelectorAll('[data-part]').forEach((el) => {
+    const part = el.dataset.part === 'directions' ? 'minimap' : el.dataset.part
+    el.classList.toggle('dock-off', off.has(part))
+  })
   $('.health .fill').style.width = `${s.health * 100}%`
   $('.health').classList.toggle('low', s.health < 0.2)
   const stamina = s.stamina ?? 1
@@ -178,7 +184,7 @@ function lights(nowMs) {
   const w = canvas.width
   const h = canvas.height
   ctx.clearRect(0, 0, w, h)
-  if (!parts.has('lights')) return
+  if (!parts.has('lights') || state.hide?.includes('lights')) return
 
   const n = state.stars > 0 ? Math.min(2, state.stars) : 0 // two sets of lights at most
   const k = 1 - Math.exp(-3 * dt)

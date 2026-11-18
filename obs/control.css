@@ -155,3 +155,5 @@ input[type='range'] { width: 100%; accent-color: var(--pink); }
 .wheel-name b { font-size: 12px; text-transform: uppercase; }
 .wheel-name span { font-size: 10px; color: var(--muted); text-transform: uppercase; }
 .tabs button.on { background: #fff; color: #111; }
+.toggles { display: grid; grid-template-columns: repeat(4, 1fr); }
+.toggles button:not(.on) { color: var(--muted); text-decoration: line-through; }

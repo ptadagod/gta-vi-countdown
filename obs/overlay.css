@@ -52,6 +52,7 @@ body.preview {
 .tint.on { opacity: 0.2; }
 
 [hidden] { display: none !important; }
+.dock-off { display: none !important; } /* switched off from the dock */
 
 /* ---------- Health and special, top left ---------- */
 

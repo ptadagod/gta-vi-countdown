@@ -114,6 +114,18 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'Escape') setWheel({ open: false })
 })
 
+// ---------- Show / hide HUD parts ----------
+
+const PARTS = { health: 'Health', stamina: 'Stamina', special: 'Special', wanted: 'Wanted stars', weapon: 'Weapon', money: 'Money', minimap: 'Minimap', lights: 'Police lights' }
+$('#toggles').innerHTML = Object.entries(PARTS).map(([k, label]) => `<button data-part="${k}">${label}</button>`).join('')
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-part]')
+  if (!b) return
+  const hide = state.hide ?? []
+  const k = b.dataset.part
+  set({ hide: hide.includes(k) ? hide.filter((x) => x !== k) : [...hide, k] })
+})
+
 function learn(clue) {
   if (!state.clues.includes(clue)) set({ clues: [...state.clues, clue] })
 }
@@ -130,6 +142,8 @@ document.addEventListener('click', (e) => {
     return
   }
   switch (b.dataset.act) {
+    case 'showAll': set({ hide: [] }); break
+    case 'hideAll': set({ hide: Object.keys(PARTS) }); break
     case 'star': {
       raise(state.stars + 1)
       const unknown = CLUES.filter((c) => !state.clues.includes(c))
@@ -215,6 +229,11 @@ function show() {
   $('#weapon').value = weaponKey(state.weapon)
   $('#ammoOut').textContent = weaponKey(state.weapon) === 'none' ? 'hidden' : !WEAPONS[weaponKey(state.weapon)].mag ? 'no ammo' : `${state.clip ?? 0} / ${state.ammo ?? 0}`
   showWheel()
+  document.querySelectorAll('#toggles [data-part]').forEach((b) => {
+    const on = !(state.hide ?? []).includes(b.dataset.part)
+    b.classList.toggle('on', on)
+    b.title = on ? 'On stream: click to hide' : 'Hidden: click to show'
+  })
   $('#evade').classList.toggle('on', state.evading)
   $('#evade').textContent = state.evading ? 'Evading…' : 'Evade'
   $('#useSpecial').classList.toggle('on', state.specialUntil > Date.now())
